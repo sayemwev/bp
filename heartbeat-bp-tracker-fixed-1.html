@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>হার্টবিট — ডিজিটাল ডাক্তার ও রক্তচাপ ট্র্যাকার</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          display: ['Fraunces', 'Hind Siliguri', 'serif'],
+          body: ['Hind Siliguri', 'sans-serif'],
+        },
+        colors: {
+          teal: { 50:'#eefbf9', 100:'#d3f4ee', 200:'#a6e8dd', 300:'#71d5c6', 400:'#3fb9ab', 500:'#22968b', 600:'#187871', 700:'#166059', 800:'#154d48', 900:'#14403c' },
+          lav:  { 50:'#f7f5fd', 100:'#efeafc', 200:'#e0d6f8', 300:'#c8b6f0', 400:'#ac8fe4', 500:'#9169d6', 600:'#7a4fc0', 700:'#663fa0', 800:'#553582', 900:'#472e6a' },
+          rose: { 50:'#fef3f6', 100:'#fde6ee', 200:'#fbcfe0', 300:'#f8a8c6', 400:'#f279a5', 500:'#e84f83', 600:'#d22e66', 700:'#b11f53', 800:'#941d47', 900:'#7d1c40' },
+        },
+        boxShadow: { glass: '0 10px 34px -6px rgba(20, 40, 38, 0.14)' }
+      }
+    }
+  }
+</script>
+
+<style>
+  html,body{ font-family:'Hind Siliguri',sans-serif; -webkit-tap-highlight-color: transparent; }
+  h1,h2,h3,.font-display{ font-family:'Fraunces','Hind Siliguri',serif; }
+  body{
+    background:
+      radial-gradient(1100px 560px at 8% -8%, rgba(34,150,139,0.10), transparent 60%),
+      radial-gradient(900px 560px at 108% 8%, rgba(232,79,131,0.10), transparent 55%),
+      linear-gradient(180deg,#fbfaf8 0%, #f5f4f1 100%);
+    min-height:100vh;
+  }
+  .glass{ background: rgba(255,255,255,0.72); backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%); border: 1px solid rgba(255,255,255,0.7); }
+  .view{ animation: fadeUp .32s ease both; }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:translateY(0)} }
+  .tap:active{ transform: scale(0.97); }
+  ::-webkit-scrollbar{ width:0; height:0; }
+  .heartbeat-line{ stroke-dasharray: 340; stroke-dashoffset: 340; animation: draw 1.8s ease forwards; }
+  @keyframes draw{ to{ stroke-dashoffset:0; } }
+  input[type=checkbox]{ accent-color:#e84f83; }
+  .nav-item .nav-ic svg{ transition: transform .2s ease; }
+  .nav-item.active .nav-ic svg{ transform: translateY(-2px); }
+  .toast{ animation: toastIn .25s ease both; }
+  @keyframes toastIn{ from{opacity:0; transform:translate(-50%,10px)} to{opacity:1; transform:translate(-50%,0)} }
+  #pdf-report{ background:#fff; }
+  .adv-tab.active{ background:#14403c; color:#fff; }
+  .adv-tab-m.active{ background:#7d1c40; color:#fff; }
+  details > summary{ list-style:none; cursor:pointer; }
+  details > summary::-webkit-details-marker{ display:none; }
+  details[open] .chev{ transform: rotate(180deg); }
+
+  /* ================= ডার্ক থিম ================= */
+  html.theme-dark body{
+    background:
+      radial-gradient(1100px 560px at 8% -8%, rgba(34,150,139,0.16), transparent 60%),
+      radial-gradient(900px 560px at 108% 8%, rgba(232,79,131,0.14), transparent 55%),
+      linear-gradient(180deg,#161b1a 0%, #0f1312 100%);
+  }
+  html.theme-dark .glass{
+    background: rgba(30,36,34,0.72);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  html.theme-dark header.sticky{ background: rgba(15,19,18,0.75) !important; }
+  html.theme-dark .text-stone-800, html.theme-dark .text-stone-700, html.theme-dark .text-stone-600{ color:#d6d3d1 !important; }
+  html.theme-dark .text-stone-500, html.theme-dark .text-stone-400{ color:#9c9691 !important; }
+  html.theme-dark h1, html.theme-dark h2, html.theme-dark h3{ color:#f1efec !important; }
+  html.theme-dark .bg-white\/60, html.theme-dark .bg-white\/70{ background: rgba(255,255,255,0.06) !important; }
+  html.theme-dark input, html.theme-dark select{
+    background: rgba(255,255,255,0.06) !important;
+    border-color: rgba(255,255,255,0.14) !important;
+    color:#f1efec !important;
+  }
+  html.theme-dark input::placeholder{ color:#726c68; }
+  html.theme-dark .bg-stone-100{ background: rgba(255,255,255,0.08) !important; color:#d6d3d1; }
+  html.theme-dark nav .glass{ background: rgba(20,25,24,0.85); }
+  html.theme-dark #toast{ filter: brightness(0.95); }
+</style>
+</head>
+<body class="text-stone-800">
+
+<div class="max-w-md mx-auto min-h-screen relative pb-28">
+
+  <!-- HEADER -->
+  <header class="sticky top-0 z-30 px-5 pt-5 pb-3 backdrop-blur-xl bg-[#fbfaf8]/75">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-[11px] tracking-widest uppercase text-stone-400 font-semibold" id="header-eyebrow">সাধারণ</p>
+        <h1 class="text-2xl font-display font-semibold text-stone-800 -mt-0.5" id="header-title">শুভেচ্ছা 👋</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btn-open-settings" class="tap w-9 h-9 rounded-full bg-stone-500/10 text-stone-600 flex items-center justify-center shrink-0" aria-label="সেটিংস">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <button id="btn-open-guidelines" class="tap w-9 h-9 rounded-full bg-teal-700/10 text-teal-800 flex items-center justify-center shrink-0" aria-label="আন্তর্জাতিক গাইডলাইন দেখুন">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>
+        </button>
+        <svg width="28" height="28" viewBox="0 0 100 40" class="text-teal-700 opacity-90">
+          <path class="heartbeat-line" d="M0 20 L22 20 L30 5 L40 35 L48 20 L58 28 L64 20 L100 20" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <main class="px-5">
+
+    <!-- ============ VIEW: GENERAL ============ -->
+    <section id="view-general" class="view space-y-5">
+      <div id="latest-status-hero"></div>
+
+      <div class="glass rounded-3xl p-5 shadow-glass">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display text-lg font-semibold text-teal-800">নতুন রিডিং</h2>
+          <span class="text-[10px] font-semibold tracking-wide bg-teal-100 text-teal-700 px-2.5 py-1 rounded-full">স্ট্যান্ডার্ড · AHA গাইডলাইন</span>
+        </div>
+        <form id="form-general" class="space-y-3.5">
+          <div>
+            <label class="text-xs font-semibold text-stone-500">রোগীর নাম <span class="font-normal text-stone-400">(ঐচ্ছিক — খালি রাখলে নাম ছাড়া সংরক্ষিত হবে)</span></label>
+            <input type="text" id="gen-name" placeholder="যেমনঃ আয়েশা রহমান" class="mt-1 w-full rounded-2xl border border-stone-200 bg-white/70 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-semibold text-stone-500">সিস্টোলিক (উপরের মান)</label>
+              <input required type="number" id="gen-sys" placeholder="১২০" class="mt-1 w-full rounded-2xl border border-stone-200 bg-white/70 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-stone-500">ডায়াস্টোলিক (নিচের মান)</label>
+              <input required type="number" id="gen-dia" placeholder="৮০" class="mt-1 w-full rounded-2xl border border-stone-200 bg-white/70 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+            </div>
+          </div>
+          <button type="submit" class="tap w-full bg-teal-700 hover:bg-teal-800 transition text-white font-semibold rounded-2xl py-3.5 text-sm shadow-lg shadow-teal-700/20">রিডিং সংরক্ষণ করুন</button>
+        </form>
+      </div>
+
+      <div id="gen-feedback-wrap"></div>
+
+      <div class="glass rounded-3xl p-5 shadow-glass">
+        <h3 class="font-display text-base font-semibold text-stone-700 mb-3">সাম্প্রতিক নাম-বিহীন লগ</h3>
+        <div id="gen-recent-list" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: LISTED ============ -->
+    <section id="view-listed" class="view hidden space-y-5">
+      <div class="glass rounded-3xl p-5 shadow-glass">
+        <h2 class="font-display text-lg font-semibold text-teal-800 mb-3">তালিকাভুক্ত রোগীগণ</h2>
+        <div class="flex gap-2">
+          <input type="text" id="listed-new-name" placeholder="নতুন রোগীর নাম যোগ করুন" class="flex-1 rounded-2xl border border-stone-200 bg-white/70 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+          <button id="btn-add-listed" class="tap shrink-0 bg-teal-700 hover:bg-teal-800 text-white rounded-2xl px-4 text-sm font-semibold">যোগ করুন</button>
+        </div>
+      </div>
+
+      <div class="glass rounded-3xl p-5 shadow-glass">
+        <label class="text-xs font-semibold text-stone-500">রিডিং সংরক্ষণের জন্য রোগী নির্বাচন করুন</label>
+        <select id="listed-select" class="mt-1 w-full rounded-2xl border border-stone-200 bg-white/70 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+          <option value="">— রোগী নির্বাচন করুন —</option>
+        </select>
+
+        <form id="form-listed" class="space-y-3.5 mt-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-semibold text-stone-500">সিস্টোলিক</label>
+              <input required type="number" id="listed-sys" placeholder="১২০" class="mt-1 w-full rounded-2xl border border-stone-200 bg-white/70 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-stone-500">ডায়াস্টোলিক</label>
+              <input required type="number" id="listed-dia" placeholder="৮০" class="mt-1 w-full rounded-2xl border border-stone-200 bg-white/70 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+            </div>
+          </div>
+          <button type="submit" class="tap w-full bg-teal-700 hover:bg-teal-800 transition text-white font-semibold rounded-2xl py-3.5 text-sm shadow-lg shadow-teal-700/20">এই রোগীর জন্য সংরক্ষণ করুন</button>
+        </form>
+      </div>
+
+      <div id="listed-feedback-wrap"></div>
+
+      <div class="glass rounded-3xl p-5 shadow-glass">
+        <h3 class="font-display text-base font-semibold text-stone-700 mb-3">সকল তালিকাভুক্ত রোগী</h3>
+        <div id="listed-patients-list" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: MOTHER CARE ============ -->
+    <section id="view-mother" class="view hidden space-y-5">
+      <div class="rounded-3xl p-5 shadow-glass bg-gradient-to-br from-rose-200 via-rose-100 to-lav-200 relative overflow-hidden">
+        <div class="relative z-10">
+          <p class="text-[10px] font-semibold tracking-widest uppercase text-rose-700">বিশেষায়িত সেবা</p>
+          <h2 class="font-display text-xl font-semibold text-rose-900">মাদার কেয়ার ড্যাশবোর্ড</h2>
+          <p class="text-xs text-rose-800/80 mt-1">গর্ভাবস্থা ও প্রসব-পরবর্তী রক্তচাপ নজরদারির জন্য ACOG নির্দেশিকা অনুসরণ করা হয়</p>
+        </div>
+      </div>
+
+      <div class="glass rounded-3xl p-5 shadow-glass border-rose-100">
+        <h3 class="font-display text-base font-semibold text-rose-800 mb-3">মা-প্রোফাইল</h3>
+        <div class="flex gap-2">
+          <input type="text" id="mother-new-name" placeholder="মায়ের নাম" class="flex-1 rounded-2xl border border-rose-200 bg-white/70 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400">
+          <button id="btn-add-mother" class="tap shrink-0 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl px-4 text-sm font-semibold">যোগ করুন</button>
+        </div>
+      </div>
+
+      <div class="glass rounded-3xl p-5 shadow-glass border-rose-100">
+        <label class="text-xs font-semibold text-stone-500">মা-প্রোফাইল নির্বাচন করুন</label>
+        <select id="mother-select" class="mt-1 w-full rounded-2xl border border-rose-200 bg-white/70 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400">
+          <option value="">— প্রোফাইল নির্বাচন করুন —</option>
+        </select>
+
+        <form id="form-mother" class="space-y-3.5 mt-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-semibold text-stone-500">পর্যায়</label>
+              <select id="mother-stage" class="mt-1 w-full rounded-2xl border border-rose-200 bg-white/70 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400">
+                <option value="pregnant">গর্ভবতী</option>
+                <option value="postpartum">প্রসব-পরবর্তী</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-stone-500">সপ্তাহ</label>
+              <input required type="number" id="mother-weeks" placeholder="২৪" class="mt-1 w-full rounded-2xl border border-rose-200 bg-white/70 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-semibold text-stone-500">সিস্টোলিক</label>
+              <input required type="number" id="mother-sys" placeholder="১১৮" class="mt-1 w-full rounded-2xl border border-rose-200 bg-white/70 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-stone-500">ডায়াস্টোলিক</label>
+              <input required type="number" id="mother-dia" placeholder="৭৬" class="mt-1 w-full rounded-2xl border border-rose-200 bg-white/70 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-stone-500 block mb-1.5">উপসর্গ থাকলে চিহ্নিত করুন</label>
+            <div class="grid grid-cols-1 gap-1.5 text-sm">
+              <label class="flex items-center gap-2 bg-white/60 rounded-xl px-3 py-2"><input type="checkbox" id="sym-headache"> তীব্র মাথাব্যথা</label>
+              <label class="flex items-center gap-2 bg-white/60 rounded-xl px-3 py-2"><input type="checkbox" id="sym-vision"> দৃষ্টি ঝাপসা হয়ে যাওয়া</label>
+              <label class="flex items-center gap-2 bg-white/60 rounded-xl px-3 py-2"><input type="checkbox" id="sym-swelling"> হাত/মুখে হঠাৎ ফোলাভাব</label>
+            </div>
+          </div>
+          <button type="submit" class="tap w-full bg-rose-600 hover:bg-rose-700 transition text-white font-semibold rounded-2xl py-3.5 text-sm shadow-lg shadow-rose-600/20">মাদার কেয়ার রিডিং সংরক্ষণ করুন</button>
+        </form>
+      </div>
+
+      <div id="mother-feedback-wrap"></div>
+
+      <button id="btn-emergency-checklist" class="tap w-full glass rounded-3xl p-4 shadow-glass flex items-center gap-3 border-rose-200">
+        <span class="w-10 h-10 rounded-full bg-rose-600 text-white flex items-center justify-center shrink-0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.86l-8.2 14.2A1.5 1.5 0 0 0 3.5 20h17a1.5 1.5 0 0 0 1.4-1.94l-8.2-14.2a1.5 1.5 0 0 0-2.6 0z"/></svg>
+        </span>
+        <span class="text-left">
+          <span class="block font-semibold text-rose-800 text-sm">জরুরি নির্দেশিকা চেকলিস্ট</span>
+          <span class="block text-xs text-stone-500">গর্ভাবস্থাজনিত উচ্চ রক্তচাপ — দ্রুত দেখুন</span>
+        </span>
+      </button>
+
+      <div class="glass rounded-3xl p-5 shadow-glass border-rose-100">
+        <h3 class="font-display text-base font-semibold text-rose-800 mb-2">🍽 খাদ্যাভ্যাস ও জীবনযাত্রা নির্দেশিকা</h3>
+        <p class="text-xs text-stone-500 mb-3">গর্ভাবস্থায় রক্তচাপ নিয়ন্ত্রণে রাখতে সাধারণ পরামর্শ — প্রতিটি গর্ভাবস্থা ভিন্ন, তাই চূড়ান্ত সিদ্ধান্ত সবসময় আপনার ডাক্তারের সাথে নিন।</p>
+        <div class="grid grid-cols-1 gap-3 text-sm">
+          <div class="bg-teal-50 border border-teal-100 rounded-2xl p-3.5">
+            <p class="font-semibold text-teal-800 mb-1.5">✅ যা খাওয়া উচিত</p>
+            <p class="text-stone-600 leading-relaxed">শাকসবজি, তাজা ফল, ডাল, বাদাম, কম চর্বিযুক্ত দুধ/দই, ওটস ও লাল চাল, পর্যাপ্ত পানি (দিনে ৮-১০ গ্লাস), আয়রন ও ক্যালসিয়ামযুক্ত খাবার।</p>
+          </div>
+          <div class="bg-rose-50 border border-rose-100 rounded-2xl p-3.5">
+            <p class="font-semibold text-rose-800 mb-1.5">🚫 যা এড়িয়ে চলা উচিত</p>
+            <p class="text-stone-600 leading-relaxed">অতিরিক্ত লবণ ও আচার, ভাজাপোড়া ও প্রক্রিয়াজাত খাবার, অতিরিক্ত ক্যাফেইন (চা/কফি), কাঁচা বা আধা-সিদ্ধ মাংস-ডিম, অতিরিক্ত চিনিযুক্ত পানীয়।</p>
+          </div>
+          <div class="bg-lav-50 border border-lav-100 rounded-2xl p-3.5">
+            <p class="font-semibold text-lav-800 mb-1.5">🛏 বিশ্রাম</p>
+            <p class="text-stone-600 leading-relaxed">দিনে অন্তত ৮ ঘণ্টা ঘুম ও প্রয়োজনে দুপুরে বিশ্রাম নিন। বাম কাতে শুয়ে বিশ্রাম নিলে রক্ত সঞ্চালন ভালো হয়। দীর্ঘক্ষণ দাঁড়িয়ে বা এক জায়গায় বসে থাকা এড়িয়ে চলুন।</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass rounded-3xl p-5 shadow-glass border-rose-100">
+        <h3 class="font-display text-base font-semibold text-rose-800 mb-3">সকল মা-প্রোফাইল</h3>
+        <div id="mother-profiles-list" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: HISTORY ============ -->
+    <section id="view-history" class="view hidden space-y-4">
+      <div class="glass rounded-3xl p-4 shadow-glass flex gap-2 overflow-x-auto">
+        <button data-filter="all" class="hist-filter adv-tab active shrink-0 text-xs font-semibold px-3.5 py-2 rounded-full bg-stone-100 text-stone-600">সব</button>
+        <button data-filter="general" class="hist-filter adv-tab shrink-0 text-xs font-semibold px-3.5 py-2 rounded-full bg-stone-100 text-stone-600">সাধারণ</button>
+        <button data-filter="listed" class="hist-filter adv-tab shrink-0 text-xs font-semibold px-3.5 py-2 rounded-full bg-stone-100 text-stone-600">তালিকাভুক্ত</button>
+        <button data-filter="mother" class="hist-filter adv-tab shrink-0 text-xs font-semibold px-3.5 py-2 rounded-full bg-stone-100 text-stone-600">মাদার কেয়ার</button>
+      </div>
+      <div id="history-list" class="space-y-2.5"></div>
+    </section>
+
+    <!-- ============ VIEW: ANALYTICS ============ -->
+    <section id="view-analytics" class="view hidden space-y-5">
+      <div class="glass rounded-3xl p-5 shadow-glass">
+        <label class="text-xs font-semibold text-stone-500">রোগী বা মা-প্রোফাইল নির্বাচন করুন</label>
+        <select id="analytics-select" class="mt-1 w-full rounded-2xl border border-stone-200 bg-white/70 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+          <option value="">— প্রোফাইল নির্বাচন করুন —</option>
+        </select>
+      </div>
+
+      <div id="analytics-empty" class="glass rounded-3xl p-8 shadow-glass text-center text-stone-400 text-sm">
+        ট্রেন্ড, সারসংক্ষেপ ও রিপোর্ট দেখতে উপরে একটি প্রোফাইল নির্বাচন করুন।
+      </div>
+
+      <div id="analytics-content" class="hidden space-y-5">
+
+        <div class="glass rounded-3xl p-4 shadow-glass flex gap-2">
+          <button data-range="month" class="range-filter adv-tab active flex-1 text-xs font-semibold py-2 rounded-full bg-stone-100 text-stone-600">মাসিক রিপোর্ট</button>
+          <button data-range="year" class="range-filter adv-tab flex-1 text-xs font-semibold py-2 rounded-full bg-stone-100 text-stone-600">বাৎসরিক রিপোর্ট</button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="glass rounded-2xl p-4 shadow-glass"><p class="text-[10px] uppercase text-stone-400 font-semibold">গড় সিস্টোলিক</p><p id="stat-avg-sys" class="text-2xl font-display font-semibold text-teal-700">—</p></div>
+          <div class="glass rounded-2xl p-4 shadow-glass"><p class="text-[10px] uppercase text-stone-400 font-semibold">গড় ডায়াস্টোলিক</p><p id="stat-avg-dia" class="text-2xl font-display font-semibold text-teal-700">—</p></div>
+          <div class="glass rounded-2xl p-4 shadow-glass"><p class="text-[10px] uppercase text-stone-400 font-semibold">সর্বোচ্চ</p><p id="stat-high" class="text-lg font-display font-semibold text-rose-600">—</p></div>
+          <div class="glass rounded-2xl p-4 shadow-glass"><p class="text-[10px] uppercase text-stone-400 font-semibold">সর্বনিম্ন</p><p id="stat-low" class="text-lg font-display font-semibold text-teal-600">—</p></div>
+        </div>
+
+        <div id="risk-alert-box" class="hidden rounded-2xl p-4 text-sm font-medium"></div>
+
+        <div class="glass rounded-3xl p-4 shadow-glass">
+          <h3 class="font-display text-sm font-semibold text-stone-600 mb-2">সিস্টোলিক ও ডায়াস্টোলিক ট্রেন্ড</h3>
+          <div class="relative w-full" style="height:220px;">
+            <canvas id="chart-line"></canvas>
+          </div>
+        </div>
+
+        <div class="glass rounded-3xl p-4 shadow-glass">
+          <h3 class="font-display text-sm font-semibold text-stone-600 mb-2">স্বাস্থ্য অবস্থার বণ্টন</h3>
+          <div class="relative w-full" style="height:220px;">
+            <canvas id="chart-doughnut"></canvas>
+          </div>
+        </div>
+
+        <button id="btn-download-pdf" class="tap w-full bg-stone-900 hover:bg-stone-800 transition text-white font-semibold rounded-2xl py-3.5 text-sm shadow-lg flex items-center justify-center gap-2">
+          ⬇ PDF রিপোর্ট ডাউনলোড করুন
+        </button>
+
+        <div class="glass rounded-3xl p-4 shadow-glass">
+          <h3 class="font-display text-sm font-semibold text-stone-600 mb-2">সম্পূর্ণ রিডিং ইতিহাস</h3>
+          <div id="analytics-table" class="space-y-2"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM NAV -->
+  <nav class="fixed bottom-0 left-0 right-0 z-40">
+    <div class="max-w-md mx-auto px-3 pb-3">
+      <div class="glass rounded-3xl shadow-glass px-2 py-2 flex items-center justify-between">
+        <button data-view="general" class="nav-item active tap flex-1 flex flex-col items-center gap-1 py-2 rounded-2xl text-teal-700">
+          <span class="nav-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 0 0 1 1h3m10-11l2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1m-6 0h6"/></svg></span>
+          <span class="text-[10px] font-semibold">সাধারণ</span>
+        </button>
+        <button data-view="listed" class="nav-item tap flex-1 flex flex-col items-center gap-1 py-2 rounded-2xl text-stone-400">
+          <span class="nav-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v2h6V3M8 9h8M8 13h8M8 17h5"/></svg></span>
+          <span class="text-[10px] font-semibold">তালিকা</span>
+        </button>
+        <button data-view="mother" class="nav-item tap flex-1 flex flex-col items-center gap-1 py-2 rounded-2xl text-stone-400 relative -top-3">
+          <span class="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-lav-500 flex items-center justify-center text-white shadow-lg shadow-rose-500/30">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="6" r="3"/><path d="M9 9c-2 1-3 3-3 6a6 6 0 0 0 12 0c0-3-1-5-3-6"/><path d="M12 15v6"/></svg>
+          </span>
+          <span class="text-[10px] font-semibold mt-0.5">মাদার কেয়ার</span>
+        </button>
+        <button data-view="history" class="nav-item tap flex-1 flex flex-col items-center gap-1 py-2 rounded-2xl text-stone-400">
+          <span class="nav-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span>
+          <span class="text-[10px] font-semibold">ইতিহাস</span>
+        </button>
+        <button data-view="analytics" class="nav-item tap flex-1 flex flex-col items-center gap-1 py-2 rounded-2xl text-stone-400">
+          <span class="nav-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V10M12 19V5M20 19v-7"/></svg></span>
+          <span class="text-[10px] font-semibold">রিপোর্ট</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="hidden fixed bottom-28 left-1/2 -translate-x-1/2 z-50 toast"></div>
+
+<!-- EMERGENCY MODAL -->
+<div id="emergency-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-end justify-center">
+  <div class="bg-white rounded-t-3xl max-w-md w-full p-6 max-h-[85vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display text-lg font-semibold text-rose-700">জরুরি নির্দেশিকা</h3>
+      <button id="close-emergency" class="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center">✕</button>
+    </div>
+    <p class="text-xs text-stone-500 mb-4">প্রি-এক্লাম্পসিয়া ও গর্ভাবস্থাজনিত উচ্চ রক্তচাপের সতর্কতা লক্ষণ। রক্তচাপ ≥১৬০/১১০ হলে বা নিচের যেকোনো লক্ষণ দেখা দিলে এটিকে জরুরি অবস্থা হিসেবে গণ্য করুন।</p>
+    <ul class="space-y-2.5 text-sm text-stone-700">
+      <li class="flex gap-2"><span>🩸</span> সিস্টোলিক ≥ ১৬০ mmHg অথবা ডায়াস্টোলিক ≥ ১১০ mmHg</li>
+      <li class="flex gap-2"><span>🤕</span> তীব্র বা ক্রমাগত মাথাব্যথা যা বিশ্রামেও কমছে না</li>
+      <li class="flex gap-2"><span>👁️</span> দৃষ্টি ঝাপসা, চোখে ফুটকি দেখা বা আলোর প্রতি সংবেদনশীলতা</li>
+      <li class="flex gap-2"><span>🫱</span> হাত, মুখ বা চোখের চারপাশে হঠাৎ ফোলাভাব</li>
+      <li class="flex gap-2"><span>🤰</span> পেটের উপরের দিকে, বিশেষ করে ডান পাঁজরের নিচে ব্যথা</li>
+      <li class="flex gap-2"><span>😮‍💨</span> শ্বাসকষ্ট বা বুকে চাপ অনুভব</li>
+      <li class="flex gap-2"><span>🤢</span> গর্ভাবস্থার শেষ দিকে হঠাৎ বমি বমি ভাব বা বমি</li>
+    </ul>
+    <div class="mt-5 bg-rose-50 border border-rose-200 rounded-2xl p-4 text-sm text-rose-800">
+      <strong class="block mb-1">এসবের যেকোনোটি দেখা দিলে করণীয়:</strong>
+      সাথে সাথে আপনার গাইনোকোলজিস্ট/ডেলিভারি টিমের সাথে যোগাযোগ করুন অথবা নিকটস্থ জরুরি বিভাগে যান। পরবর্তী নির্ধারিত অ্যাপয়েন্টমেন্টের জন্য অপেক্ষা করবেন না।
+    </div>
+  </div>
+</div>
+
+<!-- GUIDELINES MODAL -->
+<div id="guidelines-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-end justify-center">
+  <div class="bg-white rounded-t-3xl max-w-md w-full p-6 max-h-[88vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display text-lg font-semibold text-teal-800">আন্তর্জাতিক রক্তচাপ নির্দেশিকা</h3>
+      <button id="close-guidelines" class="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center shrink-0">✕</button>
+    </div>
+    <p class="text-[11px] text-stone-400 mb-4">American Heart Association (AHA/ACC) ও ACOG-এর সর্বশেষ মানদণ্ড অনুসারে</p>
+
+    <div class="flex gap-2 mb-4">
+      <button data-gtab="adult" class="gtab adv-tab active flex-1 text-xs font-semibold py-2 rounded-full bg-stone-100 text-stone-600">প্রাপ্তবয়স্ক</button>
+      <button data-gtab="mother" class="gtab adv-tab flex-1 text-xs font-semibold py-2 rounded-full bg-stone-100 text-stone-600">গর্ভবতী মা</button>
+      <button data-gtab="tips" class="gtab adv-tab flex-1 text-xs font-semibold py-2 rounded-full bg-stone-100 text-stone-600">টিপস</button>
+    </div>
+
+    <div id="gtab-adult" class="space-y-3"></div>
+    <div id="gtab-mother" class="space-y-3 hidden"></div>
+    <div id="gtab-tips" class="space-y-3 hidden"></div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settings-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-end justify-center">
+  <div class="bg-white rounded-t-3xl max-w-md w-full p-6 max-h-[88vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display text-lg font-semibold text-stone-800">সেটিংস</h3>
+      <button id="close-settings" class="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center shrink-0">✕</button>
+    </div>
+
+    <!-- থিম -->
+    <div class="mb-5">
+      <p class="text-xs font-semibold text-stone-500 mb-2">🎨 থিম</p>
+      <div class="flex gap-2">
+        <button data-theme-choice="light" class="theme-choice flex-1 text-sm font-semibold py-3 rounded-2xl border-2 border-teal-600 bg-teal-50 text-teal-800">☀️ লাইট</button>
+        <button data-theme-choice="dark" class="theme-choice flex-1 text-sm font-semibold py-3 rounded-2xl border-2 border-stone-200 bg-white text-stone-600">🌙 ডার্ক</button>
+      </div>
+    </div>
+
+    <!-- অফলাইন স্ট্যাটাস -->
+    <div class="mb-5 rounded-2xl p-3.5 bg-stone-100 flex items-center gap-3">
+      <span id="offline-dot" class="w-2.5 h-2.5 rounded-full bg-teal-500 shrink-0"></span>
+      <p id="offline-status-text" class="text-xs text-stone-600">সংযোগ পরীক্ষা করা হচ্ছে…</p>
+    </div>
+
+    <!-- ডেটা ব্যবস্থাপনা -->
+    <div class="mb-2">
+      <p class="text-xs font-semibold text-stone-500 mb-2">🗂 ডেটা ব্যবস্থাপনা</p>
+      <div class="space-y-2.5">
+        <button id="btn-export-data" class="tap w-full flex items-center gap-3 bg-white/60 border border-stone-200 rounded-2xl px-4 py-3 text-left">
+          <span class="w-9 h-9 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">⬇️</span>
+          <span>
+            <span class="block text-sm font-semibold text-stone-700">ডেটা এক্সপোর্ট করুন (JSON)</span>
+            <span class="block text-[11px] text-stone-400">সব রোগী, রিডিং ও প্রোফাইলসহ একটি ব্যাকআপ ফাইল ডাউনলোড হবে</span>
+          </span>
+        </button>
+
+        <label class="tap w-full flex items-center gap-3 bg-white/60 border border-stone-200 rounded-2xl px-4 py-3 text-left cursor-pointer">
+          <span class="w-9 h-9 rounded-full bg-lav-100 text-lav-700 flex items-center justify-center shrink-0">⬆️</span>
+          <span>
+            <span class="block text-sm font-semibold text-stone-700">ডেটা ইম্পোর্ট করুন (JSON)</span>
+            <span class="block text-[11px] text-stone-400">আগের ব্যাকআপ ফাইল থেকে ডেটা ফিরিয়ে আনুন</span>
+          </span>
+          <input type="file" id="input-import-data" accept="application/json" class="hidden">
+        </label>
+
+        <button id="btn-delete-all" class="tap w-full flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-left">
+          <span class="w-9 h-9 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">🗑</span>
+          <span>
+            <span class="block text-sm font-semibold text-red-700">সম্পূর্ণ ডেটা মুছে ফেলুন</span>
+            <span class="block text-[11px] text-red-400">সব রোগী, রিডিং ও প্রোফাইল স্থায়ীভাবে মুছে যাবে</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REUSABLE CONFIRM MODAL -->
+<div id="confirm-modal" class="hidden fixed inset-0 z-[60] bg-black/50 flex items-center justify-center px-6">
+  <div class="bg-white rounded-3xl w-full max-w-sm p-6">
+    <h3 id="confirm-title" class="font-display text-lg font-semibold text-stone-800 mb-2">নিশ্চিত করুন</h3>
+    <p id="confirm-message" class="text-sm text-stone-600 leading-relaxed mb-5"></p>
+    <div class="flex gap-3">
+      <button id="confirm-cancel" class="tap flex-1 bg-stone-100 text-stone-700 font-semibold rounded-2xl py-3 text-sm">বাতিল</button>
+      <button id="confirm-ok" class="tap flex-1 bg-red-600 text-white font-semibold rounded-2xl py-3 text-sm">নিশ্চিত করুন</button>
+    </div>
+  </div>
+</div>
+
+<!-- HIDDEN PDF REPORT TEMPLATE -->
+<div id="pdf-report" style="position:absolute; left:0; top:0; width:800px; opacity:0; pointer-events:none; z-index:-1;"></div>
+
+<script>
+/* ================= STORAGE LAYER ================= */
+const LS_RECORDS  = 'hb_records_v2';
+const LS_LISTED   = 'hb_listed_patients_v2';
+const LS_MOTHERS  = 'hb_mother_profiles_v2';
+
+const uid = () => 'id_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+
+function loadJSON(key, fallback){
+  try{ const v = JSON.parse(localStorage.getItem(key)); return v || fallback; }
+  catch(e){ return fallback; }
+}
+function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+let records = loadJSON(LS_RECORDS, []);
+let listedPatients = loadJSON(LS_LISTED, []);
+let motherProfiles = loadJSON(LS_MOTHERS, []);
+
+function persistAll(){
+  saveJSON(LS_RECORDS, records);
+  saveJSON(LS_LISTED, listedPatients);
+  saveJSON(LS_MOTHERS, motherProfiles);
+}
+
+/* ================= ক্লিনিক্যাল তথ্যভাণ্ডার (বাংলায়) ================= */
+const STANDARD_INFO = {
+  crisis: {
+    label:'হাইপারটেনসিভ ক্রাইসিস (জরুরি অবস্থা)', color:'#b91c1c', bg:'#fee2e2',
+    summary:'এটি একটি মেডিকেল ইমার্জেন্সি। বিলম্ব না করে জরুরি চিকিৎসা নিন।',
+    firstaid:['শান্ত থাকুন, বসুন বা আধশোয়া হয়ে বিশ্রাম নিন','অবিলম্বে নিকটস্থ হাসপাতাল/জরুরি সেবায় (৯৯৯) যোগাযোগ করুন','একা গাড়ি চালিয়ে যাবেন না, সাথে কাউকে নিন','ডাক্তারের অনুমতি ছাড়া বাড়তি ওষুধ খাবেন না'],
+    doList:['দ্রুত জরুরি চিকিৎসা সেবা নিন','শ্বাস-প্রশ্বাস স্বাভাবিক রাখার চেষ্টা করুন'],
+    avoidList:['শারীরিক পরিশ্রম করবেন না','লবণাক্ত/ভারী খাবার এড়িয়ে চলুন','বিলম্ব করবেন না'],
+    foodDo:['হালকা তরল খাবার (প্রয়োজনে)'],
+    foodAvoid:['লবণাক্ত, ভাজাপোড়া ও ক্যাফেইনযুক্ত খাবার'],
+    rest:'সম্পূর্ণ বিশ্রামে থাকুন, চিকিৎসা না পাওয়া পর্যন্ত কোনো কাজ করবেন না।',
+    doctor:'এখনই — এটি জরুরি বিভাগে যাওয়ার মতো পরিস্থিতি।'
+  },
+  stage2: {
+    label:'স্টেজ ২ উচ্চ রক্তচাপ', color:'#c2410c', bg:'#ffedd5',
+    summary:'রক্তচাপ যথেষ্ট বেশি — দ্রুত চিকিৎসকের পরামর্শ প্রয়োজন।',
+    doList:['কয়েকদিনের মধ্যে ডাক্তার দেখান','নিয়মিত সকাল-সন্ধ্যা রক্তচাপ মাপুন ও লিখে রাখুন','হালকা ব্যায়াম (হাঁটা) চালিয়ে যান, ডাক্তারের অনুমতিক্রমে'],
+    avoidList:['ধূমপান ও মদ্যপান সম্পূর্ণ বন্ধ করুন','মানসিক চাপ ও রাত জাগা এড়িয়ে চলুন','নিজে থেকে ওষুধ বন্ধ বা পরিবর্তন করবেন না'],
+    foodDo:['কম লবণযুক্ত ঘরে রান্না খাবার','শাকসবজি, ফলমূল, ডাল'],
+    foodAvoid:['প্যাকেটজাত/ফাস্ট ফুড','অতিরিক্ত লবণ, আচার, সয়া সস'],
+    rest:'প্রতিদিন ৭-৮ ঘণ্টা ঘুম নিশ্চিত করুন, দিনে একবার বিশ্রাম নিন।',
+    doctor:'২-৩ দিনের মধ্যে ডাক্তার দেখানো উচিত।'
+  },
+  stage1: {
+    label:'স্টেজ ১ উচ্চ রক্তচাপ', color:'#b45309', bg:'#fef3c7',
+    summary:'সতর্ক থাকার সময় — জীবনযাত্রায় পরিবর্তন আনলে নিয়ন্ত্রণে আসতে পারে।',
+    doList:['সপ্তাহে অন্তত ৫ দিন ৩০ মিনিট হাঁটাচলা করুন','ওজন নিয়ন্ত্রণে রাখুন','সপ্তাহে ২-৩ বার রক্তচাপ পরীক্ষা করুন'],
+    avoidList:['অতিরিক্ত লবণযুক্ত খাবার এড়িয়ে চলুন','দীর্ঘ সময় বসে থাকবেন না','মানসিক চাপ কমানোর চেষ্টা করুন'],
+    foodDo:['ফাইবারযুক্ত খাবার, ওটস, লাল চাল','পটাশিয়ামযুক্ত ফল (কলা, কমলা)'],
+    foodAvoid:['ভাজাপোড়া ও অতিরিক্ত চিনিযুক্ত খাবার'],
+    rest:'পর্যাপ্ত ঘুম (৭-৮ ঘণ্টা) ও নিয়মিত রুটিন বজায় রাখুন।',
+    doctor:'১-২ সপ্তাহের মধ্যে একবার চেকআপ করান।'
+  },
+  elevated: {
+    label:'ঊর্ধ্বমুখী (Elevated)', color:'#a16207', bg:'#fef9c3',
+    summary:'স্বাভাবিকের চেয়ে সামান্য বেশি — এখনই সতর্ক হলে ভবিষ্যতে ঝুঁকি এড়ানো যাবে।',
+    doList:['নিয়মিত হালকা ব্যায়াম করুন','ওজন ও লবণ গ্রহণের দিকে খেয়াল রাখুন'],
+    avoidList:['অতিরিক্ত প্রক্রিয়াজাত খাবার এড়িয়ে চলুন','ধূমপান করলে বন্ধ করুন'],
+    foodDo:['শাকসবজি ও ফলমূল বেশি খান'],
+    foodAvoid:['অতিরিক্ত লবণ ও তেলযুক্ত খাবার'],
+    rest:'প্রতিদিন ৭-৮ ঘণ্টা ঘুমান।',
+    doctor:'মাসে একবার পরীক্ষা করান।'
+  },
+  normal: {
+    label:'স্বাভাবিক (Normal)', color:'#15803d', bg:'#dcfce7',
+    summary:'রক্তচাপ স্বাস্থ্যকর সীমার মধ্যে আছে। এভাবেই চালিয়ে যান।',
+    doList:['নিয়মিত হালকা ব্যায়াম বজায় রাখুন','সুষম খাদ্যাভ্যাস চালিয়ে যান'],
+    avoidList:['দীর্ঘ সময় বসে থাকা এড়িয়ে চলুন'],
+    foodDo:['শাকসবজি, ফলমূল, সম্পূর্ণ শস্য, কম চর্বিযুক্ত প্রোটিন'],
+    foodAvoid:['অতিরিক্ত লবণ ও ভাজাপোড়া খাবার'],
+    rest:'প্রতিদিন ৭-৮ ঘণ্টা ঘুম নিশ্চিত করুন।',
+    doctor:'৬ মাস অন্তর নিয়মিত চেকআপ যথেষ্ট।'
+  }
+};
+
+const MOTHER_INFO = {
+  severe: {
+    label:'গুরুতর উচ্চ রক্তচাপ — জরুরি অবস্থা', color:'#b91c1c', bg:'#fee2e2',
+    summary:'CRITICAL EMERGENCY! এখনই হাসপাতালে যান বা ডেলিভারি টিমের সাথে যোগাযোগ করুন। প্রি-এক্লাম্পসিয়া/এক্লাম্পসিয়ার উচ্চ ঝুঁকি।',
+    firstaid:['অবিলম্বে হাসপাতালে যান বা ডেলিভারি টিমকে কল করুন','বাম কাতে শুয়ে বিশ্রাম নিন (রক্ত সঞ্চালন ভালো হয়)','একা নয়, সাথে কাউকে নিয়ে যান','নতুন কোনো ওষুধ ডাক্তারের অনুমতি ছাড়া খাবেন না'],
+    doList:['এখনই চিকিৎসা কেন্দ্রে যোগাযোগ করুন','প্রস্রাবে প্রোটিন ও উপসর্গ ডাক্তারকে জানান'],
+    avoidList:['বিলম্ব করবেন না','একা ভ্রমণ করবেন না','পরিশ্রম বা কাজ চালিয়ে যাবেন না'],
+    foodDo:['ডাক্তারের নির্দেশ অনুযায়ী হালকা তরল'],
+    foodAvoid:['লবণাক্ত ও ভারী খাবার'],
+    rest:'সম্পূর্ণ বিশ্রাম, বাম কাতে শুয়ে থাকুন — হাসপাতালে পৌঁছানো পর্যন্ত।',
+    doctor:'এখনই — জরুরি বিভাগ বা ডেলিভারি টিমের সাথে সরাসরি যোগাযোগ করুন।'
+  },
+  moderate: {
+    label:'মৃদু/মাঝারি উচ্চ রক্তচাপ', color:'#c2410c', bg:'#ffedd5',
+    summary:'গুরুত্বপূর্ণ: বিশ্রাম নিন এবং অবিলম্বে আপনার গাইনোকোলজিস্টকে জানান। প্রস্রাবে প্রোটিন, মাথাব্যথা বা দৃষ্টি সমস্যা লক্ষ্য রাখুন।',
+    doList:['আজই ডাক্তারকে জানান','ঘরে থেকে প্রতি কয়েক ঘণ্টা পর রক্তচাপ মাপুন','বাম কাতে শুয়ে বিশ্রাম নিন'],
+    avoidList:['ভারী কাজ বা দীর্ঘ ভ্রমণ এড়িয়ে চলুন','মানসিক চাপ থেকে দূরে থাকুন'],
+    foodDo:['কম লবণযুক্ত ঘরে রান্না খাবার, পর্যাপ্ত পানি'],
+    foodAvoid:['লবণাক্ত, প্রক্রিয়াজাত খাবার ও ক্যাফেইন'],
+    rest:'দিনে অন্তত ৯-১০ ঘণ্টা বিশ্রাম, ভারী কাজ থেকে বিরত থাকুন।',
+    doctor:'আজই বা আগামীকালের মধ্যে যোগাযোগ করুন — অপেক্ষা করবেন না।'
+  },
+  watch: {
+    label:'সতর্ক নজরদারি — উপসর্গ রিপোর্ট হয়েছে', color:'#a16207', bg:'#fef9c3',
+    summary:'রক্তচাপ সীমারেখায় থাকলেও উপসর্গগুলো প্রি-এক্লাম্পসিয়ার পূর্বলক্ষণ হতে পারে। নিরাপদ থাকতে আজই ডাক্তারকে জানান।',
+    doList:['আজকের মধ্যে ডাক্তারকে উপসর্গ জানান','প্রতি কয়েক ঘণ্টা পর রক্তচাপ পুনরায় মাপুন'],
+    avoidList:['উপসর্গ উপেক্ষা করবেন না','পরিশ্রম করবেন না'],
+    foodDo:['পর্যাপ্ত পানি, হালকা সুষম খাবার'],
+    foodAvoid:['অতিরিক্ত লবণ ও ক্যাফেইন'],
+    rest:'বাড়তি বিশ্রাম নিন, বাম কাতে শুয়ে থাকা ভালো।',
+    doctor:'আজই যোগাযোগ করুন, বিলম্ব করবেন না।'
+  },
+  elevated: {
+    label:'ঊর্ধ্বমুখী — পর্যবেক্ষণ প্রয়োজন', color:'#a16207', bg:'#fef9c3',
+    summary:'লক্ষ্যমাত্রার সামান্য উপরে। ২৪ ঘণ্টার মধ্যে পুনরায় পরীক্ষা করুন ও পরবর্তী ভিজিটে ডাক্তারকে জানান।',
+    doList:['২৪ ঘণ্টার মধ্যে পুনরায় মাপুন','পর্যাপ্ত পানি ও বিশ্রাম নিশ্চিত করুন'],
+    avoidList:['অতিরিক্ত লবণ ও মানসিক চাপ এড়িয়ে চলুন'],
+    foodDo:['শাকসবজি, ফলমূল, কম লবণের খাবার'],
+    foodAvoid:['প্যাকেটজাত ও ভাজাপোড়া খাবার'],
+    rest:'দিনে অন্তত ৮-৯ ঘণ্টা বিশ্রাম নিন।',
+    doctor:'পরবর্তী নির্ধারিত ভিজিটে অবশ্যই জানান।'
+  },
+  normal: {
+    label:'স্বাভাবিক', color:'#15803d', bg:'#dcfce7',
+    summary:'সুস্থ গর্ভাবস্থার জন্য লক্ষ্যমাত্রার মধ্যে আছে। নিয়মিত চেকআপ চালিয়ে যান।',
+    doList:['নিয়মিত প্রসবপূর্ব চেকআপে যান','হালকা হাঁটাচলা চালিয়ে যান (ডাক্তারের অনুমতিক্রমে)'],
+    avoidList:['দীর্ঘ সময় দাঁড়িয়ে থাকা এড়িয়ে চলুন'],
+    foodDo:['আয়রন ও ক্যালসিয়ামযুক্ত খাবার, ফলমূল, শাকসবজি'],
+    foodAvoid:['অতিরিক্ত লবণ ও ক্যাফেইন'],
+    rest:'প্রতিদিন ৮ ঘণ্টা ঘুম ও দিনে বিশ্রাম নিন।',
+    doctor:'নিয়মিত প্রসবপূর্ব/প্রসবোত্তর চেকআপ চালিয়ে যান।'
+  }
+};
+
+/* ================= শ্রেণিবিন্যাস লজিক ================= */
+function classifyStandard(sys, dia){
+  let level;
+  if(sys > 180 || dia > 120) level='crisis';
+  else if(sys >= 140 || dia >= 90) level='stage2';
+  else if(sys >= 130 || dia >= 80) level='stage1';
+  else if(sys >= 120 && dia < 80) level='elevated';
+  else level='normal';
+  return { level, ...STANDARD_INFO[level] };
+}
+
+function classifyMother(sys, dia, symptoms){
+  const anySymptom = symptoms.headache || symptoms.vision || symptoms.swelling;
+  let level;
+  if(sys >= 160 || dia >= 110) level='severe';
+  else if(sys >= 140 || dia >= 90) level='moderate';
+  else if(anySymptom) level='watch';
+  else if(sys < 120 && dia < 80) level='normal';
+  else level='elevated';
+  return { level, ...MOTHER_INFO[level] };
+}
+
+/* ================= নেভিগেশন ================= */
+const views = ['general','listed','mother','history','analytics'];
+const headerMeta = {
+  general:  { eyebrow:'সাধারণ', title:'শুভেচ্ছা 👋' },
+  listed:   { eyebrow:'তালিকাভুক্ত রোগী', title:'রোগী ব্যবস্থাপনা' },
+  mother:   { eyebrow:'বিশেষায়িত সেবা', title:'মাদার কেয়ার' },
+  history:  { eyebrow:'টাইমলাইন', title:'সম্পূর্ণ ইতিহাস' },
+  analytics:{ eyebrow:'বিশ্লেষণ', title:'তালিকাভুক্ত ইতিহাস' },
+};
+
+function switchView(name){
+  views.forEach(v=>{
+    document.getElementById('view-'+v).classList.toggle('hidden', v!==name);
+  });
+  document.querySelectorAll('.nav-item').forEach(btn=>{
+    const isActive = btn.dataset.view === name;
+    btn.classList.toggle('active', isActive);
+    btn.classList.toggle('text-teal-700', isActive && name!=='mother');
+    btn.classList.toggle('text-stone-400', !isActive);
+  });
+  document.getElementById('header-eyebrow').textContent = headerMeta[name].eyebrow;
+  document.getElementById('header-title').textContent = headerMeta[name].title;
+
+  if(name==='listed') renderListed();
+  if(name==='mother') renderMother();
+  if(name==='history') renderHistory();
+  if(name==='analytics') renderAnalyticsOptions();
+  if(name==='general') renderGeneralRecent();
+}
+document.querySelectorAll('.nav-item').forEach(btn=>{
+  btn.addEventListener('click', ()=>switchView(btn.dataset.view));
+});
+
+/* ================= টোস্ট ================= */
+function toast(msg, tone='teal'){
+  const el = document.getElementById('toast');
+  const toneMap = { teal:'bg-teal-800', rose:'bg-rose-700', red:'bg-red-700' };
+  el.className = `toast fixed bottom-28 left-1/2 -translate-x-1/2 z-50 text-white text-sm font-medium px-4 py-2.5 rounded-2xl shadow-lg ${toneMap[tone]||toneMap.teal}`;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=> el.classList.add('hidden'), 2600);
+}
+
+/* ================= ভ্যালিডেশন ================= */
+function validBP(sys, dia){
+  if(isNaN(sys) || isNaN(dia)) return 'অনুগ্রহ করে উভয় মান লিখুন।';
+  if(sys < 50 || sys > 250 || dia < 50 || dia > 250) return 'মান অবশ্যই ৫০ থেকে ২৫০ mmHg-এর মধ্যে হতে হবে।';
+  if(sys <= dia) return 'সিস্টোলিক অবশ্যই ডায়াস্টোলিকের চেয়ে বেশি হতে হবে।';
+  return null;
+}
+
+/* ================= পরামর্শ কার্ড রেন্ডার ================= */
+function listBlock(title, items, colorClass){
+  if(!items || !items.length) return '';
+  return `
+  <div>
+    <p class="text-xs font-semibold ${colorClass} mb-1.5">${title}</p>
+    <ul class="space-y-1">
+      ${items.map(t=>`<li class="text-sm text-stone-600 flex gap-2"><span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-current shrink-0 ${colorClass}"></span><span>${t}</span></li>`).join('')}
+    </ul>
+  </div>`;
+}
+
+/* ---- ভিজ্যুয়াল গেজ: রক্তচাপ কোন স্তরে আছে তা এক নজরে দেখায় ---- */
+function standardGaugeHTML(sys, status){
+  const min=90, max=200;
+  const pct = Math.min(100, Math.max(0, ((sys-min)/(max-min))*100));
+  return `
+  <div class="mt-4">
+    <div class="relative h-2.5 rounded-full overflow-hidden flex">
+      <div class="flex-1" style="background:#15803d"></div>
+      <div class="flex-1" style="background:#f2c94c"></div>
+      <div class="flex-1" style="background:#f59e0b"></div>
+      <div class="flex-1" style="background:#f97316"></div>
+      <div class="flex-1" style="background:#dc2626"></div>
+    </div>
+    <div class="relative h-2">
+      <div class="absolute top-0" style="left:calc(${pct}% - 6px); width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-top:7px solid ${status.color};"></div>
+    </div>
+    <div class="flex justify-between text-[9px] text-stone-400 mt-1">
+      <span>স্বাভাবিক</span><span>ঊর্ধ্বমুখী</span><span>স্টেজ ১</span><span>স্টেজ ২</span><span>ক্রাইসিস</span>
+    </div>
+  </div>`;
+}
+
+function motherGaugeHTML(sys, status){
+  const min=90, max=180;
+  const pct = Math.min(100, Math.max(0, ((sys-min)/(max-min))*100));
+  return `
+  <div class="mt-4">
+    <div class="relative h-2.5 rounded-full overflow-hidden flex">
+      <div class="flex-1" style="background:#15803d"></div>
+      <div class="flex-1" style="background:#f2c94c"></div>
+      <div class="flex-1" style="background:#c2410c"></div>
+      <div class="flex-1" style="background:#dc2626"></div>
+    </div>
+    <div class="relative h-2">
+      <div class="absolute top-0" style="left:calc(${pct}% - 6px); width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-top:7px solid ${status.color};"></div>
+    </div>
+    <div class="flex justify-between text-[9px] text-stone-400 mt-1">
+      <span>স্বাভাবিক</span><span>ঊর্ধ্বমুখী</span><span>মাঝারি</span><span>গুরুতর</span>
+    </div>
+  </div>`;
+}
+
+function renderLatestStatusHero(){
+  const wrap = document.getElementById('latest-status-hero');
+  if(!wrap) return;
+  if(!records.length){ wrap.innerHTML = ''; return; }
+  const r = records[0];
+  const isMother = r.category==='mother';
+  wrap.innerHTML = `
+  <div class="glass rounded-3xl p-5 shadow-glass border-l-4" style="border-left-color:${r.status.color}">
+    <div class="flex items-center justify-between gap-3">
+      <div class="min-w-0">
+        <p class="text-[10px] uppercase tracking-wide text-stone-400 font-semibold truncate">সর্বশেষ মনিটরিং অবস্থা${r.name ? ' · '+r.name : ''}</p>
+        <p class="font-display text-2xl font-semibold mt-0.5" style="color:${r.status.color}">${r.systolic}/${r.diastolic}<span class="text-xs font-body font-medium text-stone-400 ml-1">mmHg</span></p>
+        <p class="text-[11px] text-stone-400 mt-0.5">${fmtTime(r.timestamp)}</p>
+      </div>
+      ${badgeSpan(r.status)}
+    </div>
+    ${isMother ? motherGaugeHTML(r.systolic, r.status) : standardGaugeHTML(r.systolic, r.status)}
+  </div>`;
+}
+
+function feedbackCard(status, sys, kind){
+  const firstAidHtml = status.firstaid ? `
+    <div class="bg-red-50 border border-red-200 rounded-2xl p-3.5 mb-3">
+      <p class="text-xs font-bold text-red-700 mb-1.5">🚑 প্রাথমিক করণীয় (জরুরি)</p>
+      <ul class="space-y-1">${status.firstaid.map(t=>`<li class="text-sm text-red-800 flex gap-2"><span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-red-600 shrink-0"></span><span>${t}</span></li>`).join('')}</ul>
+    </div>` : '';
+
+  const gaugeHtml = (typeof sys === 'number') ? (kind==='mother' ? motherGaugeHTML(sys, status) : standardGaugeHTML(sys, status)) : '';
+
+  return `
+  <div class="glass rounded-3xl p-5 shadow-glass border-l-4" style="border-left-color:${status.color}">
+    <div class="flex items-center gap-3">
+      <span class="w-3 h-3 rounded-full shrink-0" style="background:${status.color}"></span>
+      <p class="font-display text-lg font-semibold" style="color:${status.color}">${status.label}</p>
+    </div>
+    <p class="text-sm text-stone-600 mt-2 leading-relaxed">${status.summary}</p>
+    ${gaugeHtml}
+
+    <details class="mt-3">
+      <summary class="flex items-center justify-between text-sm font-semibold text-stone-700 bg-stone-100 rounded-xl px-4 py-2.5">
+        <span>বিস্তারিত ডাক্তারি পরামর্শ দেখুন</span>
+        <svg class="chev transition" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <div class="mt-3 space-y-3">
+        ${firstAidHtml}
+        ${listBlock('✅ কী করবেন', status.doList, 'text-teal-700')}
+        ${listBlock('🚫 কী করবেন না', status.avoidList, 'text-red-600')}
+        ${listBlock('🍽 খাওয়া উচিত', status.foodDo, 'text-teal-700')}
+        ${listBlock('⛔ এড়িয়ে চলুন', status.foodAvoid, 'text-red-600')}
+        <div class="bg-lav-50 border border-lav-100 rounded-2xl p-3.5">
+          <p class="text-xs font-semibold text-lav-800 mb-1">🛏 বিশ্রাম</p>
+          <p class="text-sm text-stone-600">${status.rest}</p>
+        </div>
+        <div class="bg-stone-100 rounded-2xl p-3.5">
+          <p class="text-xs font-semibold text-stone-700 mb-1">🩺 কখন ডাক্তার দেখাবেন</p>
+          <p class="text-sm text-stone-600">${status.doctor}</p>
+        </div>
+      </div>
+    </details>
+  </div>`;
+}
+
+function badgeSpan(status){
+  return `<span class="text-[10px] font-semibold px-2.5 py-1 rounded-full shrink-0" style="background:${status.bg};color:${status.color}">${status.label}</span>`;
+}
+
+function fmtTime(ts){
+  const d = new Date(ts);
+  return d.toLocaleDateString('bn-BD',{month:'short', day:'numeric', year:'numeric'}) + ' · ' + d.toLocaleTimeString('bn-BD',{hour:'2-digit', minute:'2-digit'});
+}
+
+/* ================= সাধারণ ভিউ ================= */
+document.getElementById('form-general').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const nameInput = document.getElementById('gen-name').value.trim();
+  const sys = parseInt(document.getElementById('gen-sys').value, 10);
+  const dia = parseInt(document.getElementById('gen-dia').value, 10);
+  const err = validBP(sys, dia);
+  if(err){ toast(err, 'red'); return; }
+
+  const status = classifyStandard(sys, dia);
+  let category = 'general', patientId = null, name = null;
+
+  if(nameInput){
+    let patient = listedPatients.find(p => p.name.toLowerCase() === nameInput.toLowerCase());
+    if(!patient){
+      patient = { id: uid(), name: nameInput, createdAt: new Date().toISOString() };
+      listedPatients.push(patient);
+    }
+    category = 'listed'; patientId = patient.id; name = patient.name;
+  }
+
+  records.unshift({
+    id: uid(), category, patientId, name, systolic: sys, diastolic: dia,
+    status, timestamp: new Date().toISOString()
+  });
+  persistAll();
+
+  document.getElementById('gen-feedback-wrap').innerHTML = feedbackCard(status, sys, 'standard');
+  document.getElementById('form-general').reset();
+  renderGeneralRecent();
+  toast(nameInput ? `সংরক্ষিত ও তালিকায় যোগ হয়েছে: ${nameInput}` : 'রিডিং নাম ছাড়া সংরক্ষিত হয়েছে');
+});
+
+function renderGeneralRecent(){
+  renderLatestStatusHero();
+  const anon = records.filter(r=>r.category==='general').slice(0,6);
+  const wrap = document.getElementById('gen-recent-list');
+  if(!anon.length){ wrap.innerHTML = `<p class="text-sm text-stone-400 text-center py-4">এখনো কোনো নাম-বিহীন লগ নেই।</p>`; return; }
+  wrap.innerHTML = anon.map(r=>`
+    <div class="flex items-center justify-between bg-white/60 rounded-2xl px-4 py-3">
+      <div>
+        <p class="text-sm font-semibold text-stone-700">${r.systolic}/${r.diastolic} <span class="text-stone-400 font-normal">mmHg</span></p>
+        <p class="text-[11px] text-stone-400">${fmtTime(r.timestamp)}</p>
+      </div>
+      ${badgeSpan(r.status)}
+    </div>`).join('');
+}
+
+/* ================= তালিকাভুক্ত ভিউ ================= */
+function refreshListedSelect(){
+  const sel = document.getElementById('listed-select');
+  const current = sel.value;
+  sel.innerHTML = `<option value="">— রোগী নির্বাচন করুন —</option>` +
+    listedPatients.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  if(listedPatients.some(p=>p.id===current)) sel.value = current;
+}
+
+document.getElementById('btn-add-listed').addEventListener('click', ()=>{
+  const input = document.getElementById('listed-new-name');
+  const name = input.value.trim();
+  if(!name){ toast('আগে রোগীর নাম লিখুন', 'red'); return; }
+  if(listedPatients.some(p=>p.name.toLowerCase()===name.toLowerCase())){ toast('এই নামের রোগী আগে থেকেই আছে', 'red'); return; }
+  listedPatients.push({ id: uid(), name, createdAt: new Date().toISOString() });
+  persistAll();
+  input.value = '';
+  renderListed();
+  toast(`রোগী যোগ হয়েছে: ${name}`);
+});
+
+document.getElementById('form-listed').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const patientId = document.getElementById('listed-select').value;
+  if(!patientId){ toast('আগে একজন রোগী নির্বাচন করুন', 'red'); return; }
+  const sys = parseInt(document.getElementById('listed-sys').value, 10);
+  const dia = parseInt(document.getElementById('listed-dia').value, 10);
+  const err = validBP(sys, dia);
+  if(err){ toast(err, 'red'); return; }
+
+  const patient = listedPatients.find(p=>p.id===patientId);
+  const status = classifyStandard(sys, dia);
+  records.unshift({
+    id: uid(), category:'listed', patientId, name: patient.name,
+    systolic: sys, diastolic: dia, status, timestamp: new Date().toISOString()
+  });
+  persistAll();
+
+  document.getElementById('listed-feedback-wrap').innerHTML = feedbackCard(status, sys, 'standard');
+  document.getElementById('form-listed').reset();
+  renderListed();
+  toast(`${patient.name}-এর জন্য রিডিং সংরক্ষিত হয়েছে`);
+});
+
+function renderListed(){
+  refreshListedSelect();
+  const wrap = document.getElementById('listed-patients-list');
+  if(!listedPatients.length){ wrap.innerHTML = `<p class="text-sm text-stone-400 text-center py-4">এখনো কোনো তালিকাভুক্ত রোগী নেই।</p>`; return; }
+  wrap.innerHTML = listedPatients.map(p=>{
+    const readings = records.filter(r=>r.patientId===p.id && r.category==='listed');
+    const last = readings[0];
+    return `
+    <div class="flex items-center justify-between bg-white/60 rounded-2xl px-4 py-3">
+      <div>
+        <p class="text-sm font-semibold text-stone-700">${p.name}</p>
+        <p class="text-[11px] text-stone-400">${readings.length} টি রিডিং${last? ' · সর্বশেষ '+last.systolic+'/'+last.diastolic : ''}</p>
+      </div>
+      ${last ? badgeSpan(last.status) : `<span class="text-[10px] text-stone-400">তথ্য নেই</span>`}
+    </div>`;
+  }).join('');
+}
+
+/* ================= মাদার কেয়ার ভিউ ================= */
+function refreshMotherSelect(){
+  const sel = document.getElementById('mother-select');
+  const current = sel.value;
+  sel.innerHTML = `<option value="">— প্রোফাইল নির্বাচন করুন —</option>` +
+    motherProfiles.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  if(motherProfiles.some(p=>p.id===current)) sel.value = current;
+}
+
+document.getElementById('btn-add-mother').addEventListener('click', ()=>{
+  const input = document.getElementById('mother-new-name');
+  const name = input.value.trim();
+  if(!name){ toast('আগে নাম লিখুন', 'red'); return; }
+  if(motherProfiles.some(p=>p.name.toLowerCase()===name.toLowerCase())){ toast('এই প্রোফাইল আগে থেকেই আছে', 'red'); return; }
+  motherProfiles.push({ id: uid(), name, createdAt: new Date().toISOString() });
+  persistAll();
+  input.value = '';
+  renderMother();
+  toast(`প্রোফাইল যোগ হয়েছে: ${name}`, 'rose');
+});
+
+document.getElementById('form-mother').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const patientId = document.getElementById('mother-select').value;
+  if(!patientId){ toast('আগে একটি মা-প্রোফাইল নির্বাচন করুন', 'red'); return; }
+  const sys = parseInt(document.getElementById('mother-sys').value, 10);
+  const dia = parseInt(document.getElementById('mother-dia').value, 10);
+  const err = validBP(sys, dia);
+  if(err){ toast(err, 'red'); return; }
+  const weeks = parseInt(document.getElementById('mother-weeks').value, 10);
+  const stage = document.getElementById('mother-stage').value;
+  const symptoms = {
+    headache: document.getElementById('sym-headache').checked,
+    vision: document.getElementById('sym-vision').checked,
+    swelling: document.getElementById('sym-swelling').checked,
+  };
+
+  const profile = motherProfiles.find(p=>p.id===patientId);
+  const status = classifyMother(sys, dia, symptoms);
+  records.unshift({
+    id: uid(), category:'mother', patientId, name: profile.name,
+    systolic: sys, diastolic: dia, weeks, weeksType: stage, symptoms,
+    status, timestamp: new Date().toISOString()
+  });
+  persistAll();
+
+  document.getElementById('mother-feedback-wrap').innerHTML = feedbackCard(status, sys, 'mother');
+  document.getElementById('form-mother').reset();
+  document.getElementById('mother-select').value = patientId;
+  renderMother();
+  toast(`${profile.name}-এর জন্য মাদার কেয়ার রিডিং সংরক্ষিত হয়েছে`, 'rose');
+});
+
+function renderMother(){
+  refreshMotherSelect();
+  const wrap = document.getElementById('mother-profiles-list');
+  if(!motherProfiles.length){ wrap.innerHTML = `<p class="text-sm text-stone-400 text-center py-4">এখনো কোনো মা-প্রোফাইল নেই।</p>`; return; }
+  wrap.innerHTML = motherProfiles.map(p=>{
+    const readings = records.filter(r=>r.patientId===p.id && r.category==='mother');
+    const last = readings[0];
+    return `
+    <div class="flex items-center justify-between bg-white/60 rounded-2xl px-4 py-3">
+      <div>
+        <p class="text-sm font-semibold text-rose-800">${p.name}</p>
+        <p class="text-[11px] text-stone-400">${readings.length} টি রিডিং${last? ' · '+(last.weeksType==='pregnant'?'সপ্তাহ '+last.weeks:'প্রসব-পরবর্তী সপ্তাহ '+last.weeks) : ''}</p>
+      </div>
+      ${last ? badgeSpan(last.status) : `<span class="text-[10px] text-stone-400">তথ্য নেই</span>`}
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('btn-emergency-checklist').addEventListener('click', ()=> document.getElementById('emergency-modal').classList.remove('hidden'));
+document.getElementById('close-emergency').addEventListener('click', ()=> document.getElementById('emergency-modal').classList.add('hidden'));
+
+/* ================= ইতিহাস ভিউ ================= */
+let historyFilter = 'all';
+document.querySelectorAll('.hist-filter').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.hist-filter').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    historyFilter = btn.dataset.filter;
+    renderHistory();
+  });
+});
+
+function deleteRecord(id){
+  if(!confirm('এই রিডিং মুছে ফেলতে চান? এটি পূর্বাবস্থায় ফেরানো যাবে না।')) return;
+  records = records.filter(r=>r.id!==id);
+  persistAll();
+  renderHistory();
+  renderGeneralRecent();
+}
+window.deleteRecord = deleteRecord;
+
+function renderHistory(){
+  const filtered = historyFilter==='all' ? records : records.filter(r=>r.category===historyFilter);
+  const wrap = document.getElementById('history-list');
+  if(!filtered.length){ wrap.innerHTML = `<div class="glass rounded-3xl p-8 shadow-glass text-center text-stone-400 text-sm">কোনো রেকর্ড নেই।</div>`; return; }
+
+  const catMeta = { general:{icon:'👤',label:'সাধারণ'}, listed:{icon:'📋',label:'তালিকাভুক্ত'}, mother:{icon:'🤰',label:'মাদার কেয়ার'} };
+  wrap.innerHTML = filtered.map(r=>{
+    const meta = catMeta[r.category];
+    return `
+    <div class="glass rounded-2xl p-4 shadow-glass flex items-center gap-3">
+      <span class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:${r.status.bg}">${meta.icon}</span>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-stone-700 truncate">${r.name || 'নাম-বিহীন'} <span class="text-stone-400 font-normal">· ${meta.label}</span></p>
+        <p class="text-xs text-stone-500">${r.systolic}/${r.diastolic} mmHg · ${fmtTime(r.timestamp)}</p>
+      </div>
+      ${badgeSpan(r.status)}
+      <button onclick="deleteRecord('${r.id}')" class="tap shrink-0 w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+/* ================= বিশ্লেষণ ভিউ ================= */
+let charts = { line:null, doughnut:null };
+let analyticsRange = 'month';
+
+function renderAnalyticsOptions(){
+  const sel = document.getElementById('analytics-select');
+  const current = sel.value;
+  const listedOpts = listedPatients.map(p=>`<option value="listed:${p.id}">${p.name} (তালিকাভুক্ত)</option>`).join('');
+  const motherOpts = motherProfiles.map(p=>`<option value="mother:${p.id}">${p.name} (মাদার কেয়ার)</option>`).join('');
+  sel.innerHTML = `<option value="">— প্রোফাইল নির্বাচন করুন —</option>` + listedOpts + motherOpts;
+  if([...sel.options].some(o=>o.value===current)) sel.value = current;
+}
+
+document.getElementById('analytics-select').addEventListener('change', renderAnalyticsContent);
+document.querySelectorAll('.range-filter').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.range-filter').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    analyticsRange = btn.dataset.range;
+    renderAnalyticsContent();
+  });
+});
+
+function currentSelection(){
+  const val = document.getElementById('analytics-select').value;
+  if(!val) return null;
+  const [category, id] = val.split(':');
+  return { category, id };
+}
+
+function getFilteredReadings(){
+  const sel = currentSelection();
+  if(!sel) return [];
+  const now = new Date();
+  const cutoff = new Date(now);
+  if(analyticsRange==='month') cutoff.setMonth(cutoff.getMonth()-1);
+  else cutoff.setFullYear(cutoff.getFullYear()-1);
+
+  return records
+    .filter(r=> r.category===sel.category && r.patientId===sel.id && new Date(r.timestamp) >= cutoff)
+    .sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp));
+}
+
+function renderAnalyticsContent(){
+  const sel = currentSelection();
+  const empty = document.getElementById('analytics-empty');
+  const content = document.getElementById('analytics-content');
+  if(!sel){ empty.classList.remove('hidden'); content.classList.add('hidden'); return; }
+  empty.classList.add('hidden'); content.classList.remove('hidden');
+
+  const readings = getFilteredReadings();
+  const alertBox = document.getElementById('risk-alert-box');
+
+  if(!readings.length){
+    document.getElementById('stat-avg-sys').textContent = '—';
+    document.getElementById('stat-avg-dia').textContent = '—';
+    document.getElementById('stat-high').textContent = '—';
+    document.getElementById('stat-low').textContent = '—';
+    alertBox.classList.add('hidden');
+    if(charts.line) charts.line.destroy();
+    if(charts.doughnut) charts.doughnut.destroy();
+    document.getElementById('analytics-table').innerHTML = `<p class="text-sm text-stone-400 text-center py-4">এই সময়সীমায় কোনো রিডিং নেই।</p>`;
+    return;
+  }
+
+  const avgSys = Math.round(readings.reduce((s,r)=>s+r.systolic,0)/readings.length);
+  const avgDia = Math.round(readings.reduce((s,r)=>s+r.diastolic,0)/readings.length);
+  const highest = readings.reduce((m,r)=> r.systolic>m.systolic?r:m, readings[0]);
+  const lowest  = readings.reduce((m,r)=> r.systolic<m.systolic?r:m, readings[0]);
+
+  document.getElementById('stat-avg-sys').textContent = avgSys;
+  document.getElementById('stat-avg-dia').textContent = avgDia;
+  document.getElementById('stat-high').textContent = `${highest.systolic}/${highest.diastolic}`;
+  document.getElementById('stat-low').textContent = `${lowest.systolic}/${lowest.diastolic}`;
+
+  const riskLevels = ['crisis','severe','stage2','moderate'];
+  const riskCount = readings.filter(r=>riskLevels.includes(r.status.level)).length;
+  if(riskCount > 0){
+    alertBox.classList.remove('hidden');
+    alertBox.style.background = '#fee2e2';
+    alertBox.style.color = '#991b1b';
+    alertBox.innerHTML = `⚠ ঝুঁকি সতর্কতা: এই সময়সীমায় ${riskCount} টি উচ্চ-ঝুঁকির রিডিং পাওয়া গেছে। ${sel.category==='mother' ? 'প্রি-এক্লাম্পসিয়ার ঝুঁকি নিয়ে গাইনোকোলজিস্টের সাথে আলোচনা করুন।' : 'ক্লিনিক্যাল ফলো-আপের পরামর্শ দেওয়া হচ্ছে।'}`;
+  } else {
+    alertBox.classList.add('hidden');
+  }
+
+  if(typeof Chart === 'undefined'){
+    document.getElementById('chart-line').closest('.glass').insertAdjacentHTML('beforeend', '<p class="text-xs text-red-500 mt-2">চার্ট লাইব্রেরি লোড হয়নি — ইন্টারনেট সংযোগ পরীক্ষা করে পাতাটি রিফ্রেশ করুন।</p>');
+  } else {
+    // Defer chart (re)creation one frame so the canvas has settled into its final,
+    // visible layout size before Chart.js measures it (fixes charts not appearing
+    // right after the analytics panel is unhidden).
+    requestAnimationFrame(()=>{
+      const labels = readings.map(r=> new Date(r.timestamp).toLocaleDateString('bn-BD',{month:'short', day:'numeric'}));
+      if(charts.line) charts.line.destroy();
+      charts.line = new Chart(document.getElementById('chart-line'), {
+        type:'line',
+        data:{ labels, datasets:[
+          { label:'সিস্টোলিক', data: readings.map(r=>r.systolic), borderColor:'#22968b', backgroundColor:'rgba(34,150,139,0.12)', tension:0.35, fill:true, pointRadius:3 },
+          { label:'ডায়াস্টোলিক', data: readings.map(r=>r.diastolic), borderColor:'#e84f83', backgroundColor:'rgba(232,79,131,0.10)', tension:0.35, fill:true, pointRadius:3 },
+        ]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{size:11} } } },
+          scales:{ x:{ grid:{ display:false } }, y:{ grid:{ color:'#f1f0ee' } } } }
+      });
+
+      const groups = { 'স্বাভাবিক':0, 'ঊর্ধ্বমুখী':0, 'উচ্চ':0 };
+      readings.forEach(r=>{
+        if(['normal'].includes(r.status.level)) groups['স্বাভাবিক']++;
+        else if(['elevated','watch'].includes(r.status.level)) groups['ঊর্ধ্বমুখী']++;
+        else groups['উচ্চ']++;
+      });
+      if(charts.doughnut) charts.doughnut.destroy();
+      charts.doughnut = new Chart(document.getElementById('chart-doughnut'), {
+        type:'doughnut',
+        data:{ labels:Object.keys(groups), datasets:[{ data:Object.values(groups), backgroundColor:['#22968b','#f2c94c','#e84f83'], borderWidth:0 }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{size:11} } } }, cutout:'68%' }
+      });
+    });
+  }
+
+  document.getElementById('analytics-table').innerHTML = readings.slice().reverse().map(r=>`
+    <div class="flex items-center justify-between bg-white/60 rounded-2xl px-4 py-3">
+      <div>
+        <p class="text-sm font-semibold text-stone-700">${r.systolic}/${r.diastolic} mmHg</p>
+        <p class="text-[11px] text-stone-400">${fmtTime(r.timestamp)}${r.weeks?(' · '+(r.weeksType==='pregnant'?'সপ্তাহ '+r.weeks:'PP সপ্তাহ '+r.weeks)):''}</p>
+      </div>
+      ${badgeSpan(r.status)}
+    </div>`).join('');
+}
+
+/* ================= PDF এক্সপোর্ট ================= */
+document.getElementById('btn-download-pdf').addEventListener('click', async ()=>{
+  if(typeof html2pdf === 'undefined'){
+    toast('PDF লাইব্রেরি লোড হয়নি — ইন্টারনেট সংযোগ পরীক্ষা করে পাতাটি রিফ্রেশ করুন', 'red');
+    return;
+  }
+  const sel = currentSelection();
+  if(!sel){ toast('আগে একটি প্রোফাইল নির্বাচন করুন', 'red'); return; }
+  const readings = getFilteredReadings();
+  if(!readings.length){ toast('এই সময়সীমায় এক্সপোর্ট করার মতো রিডিং নেই', 'red'); return; }
+
+  const isMother = sel.category==='mother';
+  const profile = isMother ? motherProfiles.find(p=>p.id===sel.id) : listedPatients.find(p=>p.id===sel.id);
+  const last = readings[readings.length-1];
+  const avgSys = Math.round(readings.reduce((s,r)=>s+r.systolic,0)/readings.length);
+  const avgDia = Math.round(readings.reduce((s,r)=>s+r.diastolic,0)/readings.length);
+  const highest = readings.reduce((m,r)=> r.systolic>m.systolic?r:m, readings[0]);
+  const lowest  = readings.reduce((m,r)=> r.systolic<m.systolic?r:m, readings[0]);
+
+  const rowsHtml = readings.slice().reverse().map(r=>`
+    <tr>
+      <td style="padding:8px;border-bottom:1px solid #eee;font-size:12px;">${fmtTime(r.timestamp)}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee;font-size:12px;">${r.systolic}/${r.diastolic}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee;font-size:12px;color:${r.status.color};font-weight:600;">${r.status.label}</td>
+      ${isMother ? `<td style="padding:8px;border-bottom:1px solid #eee;font-size:12px;">${r.weeksType==='pregnant'?'সপ্তাহ '+r.weeks:'প্রসব-পরবর্তী সপ্তাহ '+r.weeks}</td>` : ''}
+    </tr>`).join('');
+
+  document.getElementById('pdf-report').innerHTML = `
+  <div style="font-family:Arial,sans-serif;padding:36px;color:#222;width:728px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid ${isMother?'#e84f83':'#22968b'};padding-bottom:16px;">
+      <div>
+        <h1 style="margin:0;font-size:22px;">হার্টবিট ক্লিনিক্যাল রিপোর্ট</h1>
+        <p style="margin:4px 0 0;font-size:12px;color:#666;">রক্তচাপ মনিটরিং সারসংক্ষেপ · ${analyticsRange==='month'?'মাসিক':'বাৎসরিক'} রিপোর্ট</p>
+      </div>
+      <div style="text-align:right;font-size:11px;color:#888;">তৈরির সময়: ${new Date().toLocaleString('bn-BD')}</div>
+    </div>
+
+    <div style="margin-top:20px;display:flex;gap:24px;">
+      <div style="flex:1;">
+        <p style="font-size:11px;color:#888;margin:0;">রোগীর নাম</p>
+        <p style="font-size:16px;font-weight:700;margin:2px 0 10px;">${profile.name}</p>
+        <p style="font-size:11px;color:#888;margin:0;">রোগীর ধরন</p>
+        <p style="font-size:14px;font-weight:600;margin:2px 0 10px;">${isMother?'মাদার কেয়ার (ACOG গাইডলাইন)':'স্ট্যান্ডার্ড রোগী (AHA গাইডলাইন)'}</p>
+        ${isMother ? `<p style="font-size:11px;color:#888;margin:0;">গর্ভাবস্থা / প্রসব-পরবর্তী পর্যায়</p><p style="font-size:14px;font-weight:600;margin:2px 0 10px;">${last.weeksType==='pregnant'?'গর্ভাবস্থার '+last.weeks+' সপ্তাহ':'প্রসব-পরবর্তী '+last.weeks+' সপ্তাহ'}</p>` : ''}
+      </div>
+      <div style="flex:1;background:#f7f7f5;border-radius:10px;padding:14px;">
+        <p style="font-size:11px;color:#888;margin:0 0 6px;">ক্লিনিক্যাল সারসংক্ষেপ</p>
+        <p style="font-size:12px;margin:3px 0;">গড় রক্তচাপ: <strong>${avgSys}/${avgDia} mmHg</strong></p>
+        <p style="font-size:12px;margin:3px 0;">সর্বোচ্চ: <strong>${highest.systolic}/${highest.diastolic} mmHg</strong></p>
+        <p style="font-size:12px;margin:3px 0;">সর্বনিম্ন: <strong>${lowest.systolic}/${lowest.diastolic} mmHg</strong></p>
+        <p style="font-size:12px;margin:3px 0;">মোট রিডিং: <strong>${readings.length}</strong></p>
+      </div>
+    </div>
+
+    ${(charts.line && charts.doughnut) ? `
+    <h3 style="font-size:14px;margin:24px 0 8px;">ট্রেন্ড ও বণ্টন</h3>
+    <div style="display:flex;gap:16px;">
+      <div style="flex:1;border:1px solid #eee;border-radius:10px;padding:10px;">
+        <p style="font-size:11px;color:#888;margin:0 0 6px;">সিস্টোলিক ও ডায়াস্টোলিক ট্রেন্ড</p>
+        <img src="${charts.line.toBase64Image()}" style="width:100%;display:block;">
+      </div>
+      <div style="flex:1;border:1px solid #eee;border-radius:10px;padding:10px;">
+        <p style="font-size:11px;color:#888;margin:0 0 6px;">স্বাস্থ্য অবস্থার বণ্টন</p>
+        <img src="${charts.doughnut.toBase64Image()}" style="width:100%;display:block;">
+      </div>
+    </div>` : ''}
+
+    <h3 style="font-size:14px;margin:24px 0 8px;">রিডিং ইতিহাস</h3>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="background:#f0f0ee;">
+          <th style="padding:8px;text-align:left;font-size:11px;">তারিখ ও সময়</th>
+          <th style="padding:8px;text-align:left;font-size:11px;">রিডিং</th>
+          <th style="padding:8px;text-align:left;font-size:11px;">অবস্থা</th>
+          ${isMother ? `<th style="padding:8px;text-align:left;font-size:11px;">পর্যায়</th>` : ''}
+        </tr>
+      </thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+
+    <div style="margin-top:20px;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:10px;">
+      এই রিপোর্টটি হার্টবিট অ্যাপ দ্বারা স্বয়ংক্রিয়ভাবে তৈরি এবং শুধুমাত্র তথ্যগত উদ্দেশ্যে — এটি পেশাদার চিকিৎসা পরামর্শের বিকল্প নয়। অনুগ্রহ করে এটি আপনার চিকিৎসকের সাথে শেয়ার করুন।
+    </div>
+  </div>`;
+
+  toast('PDF প্রস্তুত করা হচ্ছে…');
+
+  try{
+    // Wait for web fonts to finish loading so Bengali text rasterizes correctly,
+    // and give the browser one paint cycle so the freshly-injected report has a
+    // real layout before html2canvas measures it — both were causing silent
+    // failures / blank downloads.
+    if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
+    const reportEl = document.getElementById('pdf-report');
+    await html2pdf().set({
+      margin: 0.3,
+      filename: `${profile.name.replace(/\s+/g,'_')}_BP_Report.pdf`,
+      image: { type:'jpeg', quality:0.98 },
+      html2canvas: { scale:2, useCORS:true, backgroundColor:'#ffffff' },
+      jsPDF: { unit:'in', format:'a4', orientation:'portrait' }
+    }).from(reportEl).save();
+    toast('PDF ডাউনলোড হয়েছে');
+  } catch(err){
+    console.error('PDF export failed:', err);
+    toast('দুঃখিত, PDF তৈরি করা যায়নি। আবার চেষ্টা করুন।', 'red');
+  }
+});
+
+/* ================= আন্তর্জাতিক গাইডলাইন মোডাল ================= */
+const GUIDE_ADULT = [
+  { color:'#15803d', bg:'#dcfce7', title:'১. স্বাভাবিক রক্তচাপ', range:'< ১২০/৮০ mmHg',
+    body:'চমৎকার ও স্বাস্থ্যকর অবস্থা। এই স্বাস্থ্য বজায় রাখতে নিয়মিত দৈনিক ৩০ মিনিট হাঁটাচলা বা শারীরিক পরিশ্রম করুন এবং সুষম খাবার খান। বছরে অন্তত একবার প্রেসার চেক করুন।',
+    eat:'সব ধরনের পুষ্টিকর খাবার, টাটকা শাকসবজি, ফলমূল, হোল গ্রেইন (লাল চাল/আটা) এবং পর্যাপ্ত পানি।',
+    avoid:'অতিরিক্ত তৈলাক্ত, ভাজাপোড়া এবং অতিরিক্ত প্রক্রিয়াজাত বা প্যাকেটজাত খাবার।' },
+  { color:'#a16207', bg:'#fef9c3', title:'২. একটু বেশি রক্তচাপ (Elevated)', range:'সিস্টোলিক ১২০–১২৯, ডায়াস্টোলিক < ৮০',
+    body:'এটি উচ্চ রক্তচাপ নয়, তবে সতর্ক না হলে দ্রুত উচ্চ রক্তচাপের দিকে চলে যেতে পারে। এখনই জীবনযাত্রায় পরিবর্তন আনুন — ওজন নিয়ন্ত্রণে রাখুন ও মানসিক চাপ এড়িয়ে চলুন। ৩–৬ মাস লাইফস্টাইল পরিবর্তন করে পুনরায় ডাক্তার দেখান; সাধারণত ওষুধের প্রয়োজন হয় না।',
+    eat:'পটাশিয়ামযুক্ত খাবার (কলা, ডাবের পানি, আলু), ওটস ও উচ্চ আঁশযুক্ত খাবার।',
+    avoid:'কাঁচা লবণ, ফাস্টফুড, কোল্ড ড্রিংকস ও চিপস জাতীয় নোনতা খাবার।' },
+  { color:'#b45309', bg:'#fef3c7', title:'৩. উচ্চ রক্তচাপ — স্টেজ ১', range:'সিস্টোলিক ১৩০–১৩৯ অথবা ডায়াস্টোলিক ৮০–৮৯',
+    body:'উচ্চ রক্তচাপের প্রাথমিক ধাপ। চিকিৎসকের পরামর্শ নিন — জটিলতা না থাকলে ডাক্তাররা সাধারণত প্রথম ৩–৬ মাস শুধু লাইফস্টাইল পরিবর্তনের পরামর্শ দেন। প্রতিদিন ৩০ মিনিট দ্রুত হাঁটুন ও লবণ একদম কমান।',
+    eat:'লেবুর রস, রসুন, টক দই, চর্বিহীন প্রোটিন (চামড়া ছাড়া মুরগি বা সামুদ্রিক মাছ)।',
+    avoid:'আচারের মতো অতিরিক্ত সোডিয়ামযুক্ত খাবার, নোনতা বিস্কুট, সোডা ও অতিরিক্ত চা/কফি।' },
+  { color:'#c2410c', bg:'#ffedd5', title:'৪. উচ্চ রক্তচাপ — স্টেজ ২', range:'সিস্টোলিক ≥ ১৪০ অথবা ডায়াস্টোলিক ≥ ৯০',
+    body:'স্থায়ী উচ্চ রক্তচাপ — অবহেলা করলে হার্ট বা কিডনির দীর্ঘমেয়াদী ক্ষতি হতে পারে। অবিলম্বে চিকিৎসকের কাছে যান; নির্ধারিত ওষুধ নিয়মিত ও সঠিক সময়ে সেবন করুন, নিজের ইচ্ছায় বন্ধ করবেন না। প্রতিদিন নির্দিষ্ট সময়ে বাড়িতে প্রেসার মেপে চার্ট রাখুন।',
+    eat:'সবুজ শাকসবজি (পালং শাক), লাউ, শসা, ওমেগা-৩ যুক্ত মাছ ও কম চর্বিযুক্ত দুগ্ধজাত খাবার।',
+    avoid:'রেড মিট, ডালডা, ঘি, মাখন, ধূমপান, জর্দা বা গুল — সম্পূর্ণ নিষিদ্ধ।' },
+  { color:'#b91c1c', bg:'#fee2e2', title:'৫. হাইপারটেনসিভ ক্রাইসিস — জরুরি অবস্থা', range:'> ১৮০/১২০ mmHg',
+    body:'অত্যন্ত বিপজ্জনক মেডিকেল ইমার্জেন্সি। লক্ষণ: তীব্র মাথাব্যথা, বুকে ব্যথা/চাপ, শ্বাসকষ্ট, দৃষ্টি ঝাপসা, শরীর অবশ বা কথা জড়ানো। রোগীকে হেলান দিয়ে শান্তভাবে বসিয়ে/শুইয়ে গভীর শ্বাস নিতে বলুন, আতঙ্কিত হতে দেবেন না, এবং দেরি না করে অ্যাম্বুলেন্স ডাকুন বা হাসপাতালে নিন। ডাক্তারের অনুমতি ছাড়া বাড়তি ডোজ ওষুধ বা ঘরোয়া টোটকা (যেমন মাথায় ঠান্ডা পানি ঢালা) প্রয়োগ করবেন না — স্ট্রোকের ঝুঁকি বাড়ে। এই স্তরে তাৎক্ষণিক হাসপাতালে IV চিকিৎসাই একমাত্র সমাধান।' },
+];
+
+const GUIDE_MOTHER = [
+  { color:'#15803d', bg:'#dcfce7', title:'১. স্বাভাবিক রক্তচাপ (গর্ভাবস্থা)', range:'সিস্টোলিক ১১০–১২০, ডায়াস্টোলিক ৭০–৮০',
+    body:'মা ও শিশু নিরাপদ ও সুস্থ। প্রতি মাসের নিয়মিত প্রসবপূর্ব চেকআপ (ANC) করান এবং পর্যাপ্ত বিশ্রাম-ঘুম নিশ্চিত করুন (দিনে ২ ঘণ্টা + রাতে ৮ ঘণ্টা)।',
+    eat:'ক্যালসিয়াম, আয়রন ও ফলিক এসিড সমৃদ্ধ খাবার — দুধ, ডিম, খেজুর, ডালিম, আপেল, সবুজ শাকসবজি। প্রচুর পানি।',
+    avoid:'কাঁচা/আধাসিদ্ধ ডিম-মাংস, অতিরিক্ত ক্যাফেইন (চা, কফি, চকলেট)।' },
+  { color:'#b91c1c', bg:'#fee2e2', title:'২. উচ্চ রক্তচাপ / প্রি-এক্লাম্পসিয়া', range:'সিস্টোলিক ≥ ১৪০ অথবা ডায়াস্টোলিক ≥ ৯০',
+    body:'মারাত্মক মেডিকেল ইমার্জেন্সি। ২০ সপ্তাহের পর রক্তচাপ বেশি হয়ে হাত-পা-মুখ ফোলা বা প্রস্রাবে প্রোটিন পাওয়া গেলে তাকে প্রি-এক্লাম্পসিয়া বলা হয় — অবহেলায় খিঁচুনি (Eclampsia) হতে পারে। অবিলম্বে গাইনি ডাক্তারের কাছে বা হাসপাতালে যান। রোগীকে শান্ত, অন্ধকার ঘরে শুইয়ে রাখুন (উজ্জ্বল আলো/শব্দ খিঁচুনি ট্রিগার করতে পারে) এবং ডাক্তারের নির্দেশে দ্রুত হাসপাতালে নিন।',
+    eat:'লাউ, ঝিঙে, শসা, ধুন্দল, অল্প লবণে রান্না হালকা খাবার, ডাক্তারের পরামর্শমতো ডাবের পানি।',
+    avoid:'কাঁচা/বাড়তি লবণ, শুঁটকি মাছ, আচার, চিপস, ফাস্টফুড ও কোমল পানীয় — সম্পূর্ণ নিষেধ।' },
+  { color:'#a16207', bg:'#fef9c3', title:'৩. নিম্ন রক্তচাপ (গর্ভাবস্থা)', range:'< ৯০/৬০ mmHg',
+    body:'প্রথম ২৪ সপ্তাহে হরমোনের পরিবর্তনে কিছুটা কমতে পারে, তবে বেশি কমলে মাথা ঘুরে পড়ে যাওয়ার এবং শিশুর ক্ষতির ঝুঁকি থাকে। বসা/শোয়া থেকে ধীরে উঠুন, দীর্ঘ সময় দাঁড়িয়ে থাকবেন না। মাথা ঘুরলে সাথে সাথে বাম কাতে (Left lateral position) শুইয়ে দিন — এতে হৃদপিণ্ড ও জরায়ুতে রক্ত সঞ্চালন স্বাভাবিক হয়।',
+    eat:'পর্যাপ্ত পানি, ডাবের পানি, ORSaline (ডাক্তারের পরামর্শে), পুষ্টিকর স্যুপ, ফলের রস, ডিম, দুধ, কিশমিশ, বাদাম।',
+    avoid:'ভারী পরিশ্রম ও দীর্ঘ সময় খালি পেটে উপোস থাকা।' },
+];
+
+const GUIDE_TIPS = [
+  { title:'সঠিকভাবে রক্তচাপ মাপার নিয়ম', body:'মাপার অন্তত ৩০ মিনিট আগে চা, কফি, ভারী খাবার বা ধূমপান এড়িয়ে চলুন। মাপার আগে অন্তত ৫ মিনিট শান্ত হয়ে চেয়ারে পিঠ ঠেস দিয়ে সোজা বসুন, পা মেঝেতে সমান রাখুন। মাপার সময় কথা বলবেন না বা নড়াচড়া করবেন না।' },
+  { title:'লবণের লুকানো উৎস', body:'ভাতের সাথে কাঁচা লবণ ছাড়াও চিপস, চানাচুর, সস, মেয়োনিজ, নোনতা বিস্কুট, চাইনিজ ফুড (টেস্টিং সল্ট) ও বেকিং পাউডারে তৈরি খাবারে প্রচুর লুকানো সোডিয়াম থাকে, যা প্রেসার বাড়িয়ে দেয়।' },
+  { title:'পটাশিয়ামের ভূমিকা', body:'পটাশিয়াম কিডনির মাধ্যমে অতিরিক্ত সোডিয়াম বের করে দিতে সাহায্য করে এবং রক্তনালী শিথিল করে। উচ্চ রক্তচাপের রোগীদের পটাশিয়াম সমৃদ্ধ ফলমূল খাওয়া উচিত — তবে কিডনির সমস্যা থাকলে ডাক্তারের পরামর্শ ছাড়া নয়।' },
+  { title:'DASH ডায়েট', body:'উচ্চ রক্তচাপ নিয়ন্ত্রণে বিশ্বব্যাপী স্বীকৃত "DASH" (Dietary Approaches to Stop Hypertension) ডায়েটের মূল কথা: শাকসবজি ও ফলের পরিমাণ বাড়ানো, চর্বিযুক্ত খাবার ও মিষ্টি একদম কমিয়ে ফেলা।' },
+  { title:'ডাক্তারি সতর্কবার্তা', body:'একবারের রিডিং যথেষ্ট নয় — অন্তত ২–৩টি ভিন্ন দিনে শান্ত অবস্থায় মাপা রিডিংয়ের গড় হিসেব করে একজন রেজিস্টার্ড ডাক্তার নিশ্চিত করেন রোগী কোন স্তরে আছেন এবং সে অনুযায়ী চিকিৎসা দেন।' },
+];
+
+function guideCard(g){
+  return `
+  <div class="rounded-2xl p-4 border-l-4" style="background:${g.bg}; border-left-color:${g.color}">
+    <p class="font-display text-sm font-semibold" style="color:${g.color}">${g.title}</p>
+    ${g.range ? `<p class="text-[11px] font-semibold text-stone-500 mt-0.5">${g.range}</p>` : ''}
+    <p class="text-sm text-stone-700 mt-2 leading-relaxed">${g.body}</p>
+    ${g.eat ? `<p class="text-xs text-teal-800 mt-2"><strong>✅ কী খাবেন:</strong> ${g.eat}</p>` : ''}
+    ${g.avoid ? `<p class="text-xs text-red-700 mt-1"><strong>🚫 কী বর্জন করবেন:</strong> ${g.avoid}</p>` : ''}
+  </div>`;
+}
+function tipCard(t){
+  return `
+  <div class="rounded-2xl p-4 bg-stone-100">
+    <p class="font-display text-sm font-semibold text-stone-700">${t.title}</p>
+    <p class="text-sm text-stone-600 mt-1.5 leading-relaxed">${t.body}</p>
+  </div>`;
+}
+
+function initGuidelines(){
+  document.getElementById('gtab-adult').innerHTML = GUIDE_ADULT.map(guideCard).join('');
+  document.getElementById('gtab-mother').innerHTML = `
+    <div class="rounded-2xl p-3.5 bg-rose-50 text-xs text-rose-800 mb-1">গর্ভাবস্থায় রক্তচাপের যেকোনো ওঠানামা মা ও শিশু উভয়ের জন্য ঝুঁকিপূর্ণ — যেকোনো সিদ্ধান্তের আগে অবশ্যই আপনার গাইনি ডাক্তারের পরামর্শ নিন।</div>
+    ${GUIDE_MOTHER.map(guideCard).join('')}`;
+  document.getElementById('gtab-tips').innerHTML = GUIDE_TIPS.map(tipCard).join('');
+}
+initGuidelines();
+
+document.getElementById('btn-open-guidelines').addEventListener('click', ()=> document.getElementById('guidelines-modal').classList.remove('hidden'));
+document.getElementById('close-guidelines').addEventListener('click', ()=> document.getElementById('guidelines-modal').classList.add('hidden'));
+document.querySelectorAll('.gtab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.gtab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    ['adult','mother','tips'].forEach(k=> document.getElementById('gtab-'+k).classList.toggle('hidden', k!==btn.dataset.gtab));
+  });
+});
+
+/* ================= থিম ================= */
+const LS_THEME = 'hb_theme_v1';
+function applyTheme(theme){
+  document.documentElement.classList.toggle('theme-dark', theme==='dark');
+  document.querySelectorAll('.theme-choice').forEach(btn=>{
+    const active = btn.dataset.themeChoice === theme;
+    btn.classList.toggle('border-teal-600', active);
+    btn.classList.toggle('bg-teal-50', active);
+    btn.classList.toggle('text-teal-800', active);
+    btn.classList.toggle('border-stone-200', !active);
+    btn.classList.toggle('bg-white', !active);
+    btn.classList.toggle('text-stone-600', !active);
+  });
+}
+let currentTheme = localStorage.getItem(LS_THEME) || 'light';
+applyTheme(currentTheme);
+document.querySelectorAll('.theme-choice').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    currentTheme = btn.dataset.themeChoice;
+    localStorage.setItem(LS_THEME, currentTheme);
+    applyTheme(currentTheme);
+  });
+});
+
+/* ================= সেটিংস মোডাল ================= */
+document.getElementById('btn-open-settings').addEventListener('click', ()=> document.getElementById('settings-modal').classList.remove('hidden'));
+document.getElementById('close-settings').addEventListener('click', ()=> document.getElementById('settings-modal').classList.add('hidden'));
+
+/* ================= অফলাইন স্ট্যাটাস ================= */
+function refreshOfflineStatus(){
+  const dot = document.getElementById('offline-dot');
+  const text = document.getElementById('offline-status-text');
+  if(!dot || !text) return;
+  if(navigator.onLine){
+    dot.style.background = '#22968b';
+    text.textContent = 'ইন্টারনেট সংযুক্ত আছে — অফলাইনে ব্যবহারের জন্য প্রয়োজনীয় ফাইল ক্যাশ হচ্ছে/হয়েছে।';
+  } else {
+    dot.style.background = '#dc2626';
+    text.textContent = 'আপনি বর্তমানে অফলাইনে আছেন। আগে একবার অনলাইনে খোলা থাকলে অ্যাপটি এখনো কাজ করবে।';
+  }
+}
+window.addEventListener('online', refreshOfflineStatus);
+window.addEventListener('offline', refreshOfflineStatus);
+refreshOfflineStatus();
+
+/* ================= রিইউজেবল কনফার্ম মোডাল ================= */
+function askConfirm(title, message, onConfirm){
+  const modal = document.getElementById('confirm-modal');
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-message').textContent = message;
+  modal.classList.remove('hidden');
+  const okBtn = document.getElementById('confirm-ok');
+  const cancelBtn = document.getElementById('confirm-cancel');
+  const cleanup = ()=>{
+    modal.classList.add('hidden');
+    okBtn.removeEventListener('click', onOk);
+    cancelBtn.removeEventListener('click', onCancel);
+  };
+  const onOk = ()=>{ cleanup(); onConfirm(); };
+  const onCancel = ()=> cleanup();
+  okBtn.addEventListener('click', onOk);
+  cancelBtn.addEventListener('click', onCancel);
+}
+
+/* ================= ডেটা এক্সপোর্ট / ইম্পোর্ট / ডিলিট ================= */
+function reRenderEverything(){
+  persistAll();
+  renderGeneralRecent();
+  renderListed();
+  renderMother();
+  renderHistory();
+  renderAnalyticsOptions();
+  document.getElementById('analytics-empty').classList.remove('hidden');
+  document.getElementById('analytics-content').classList.add('hidden');
+  if(charts.line){ charts.line.destroy(); charts.line=null; }
+  if(charts.doughnut){ charts.doughnut.destroy(); charts.doughnut=null; }
+}
+
+document.getElementById('btn-export-data').addEventListener('click', ()=>{
+  const payload = {
+    app:'heartbeat-bp-tracker', version:2, exportedAt:new Date().toISOString(),
+    records, listedPatients, motherProfiles
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `heartbeat_backup_${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  toast('ব্যাকআপ ফাইল ডাউনলোড হয়েছে');
+});
+
+document.getElementById('input-import-data').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    let data;
+    try{ data = JSON.parse(reader.result); }
+    catch(err){ toast('ফাইলটি সঠিক JSON নয়', 'red'); e.target.value=''; return; }
+
+    if(!Array.isArray(data.records) || !Array.isArray(data.listedPatients) || !Array.isArray(data.motherProfiles)){
+      toast('এই ফাইলটি হার্টবিট ব্যাকআপ ফরম্যাটের সাথে মিলছে না', 'red');
+      e.target.value = '';
+      return;
+    }
+
+    askConfirm(
+      'ডেটা ইম্পোর্ট নিশ্চিত করুন',
+      'এই ফাইল থেকে ডেটা আনা হলে বর্তমানে থাকা সব রোগী, রিডিং ও প্রোফাইল প্রতিস্থাপিত হবে। এটি পূর্বাবস্থায় ফেরানো যাবে না। এগিয়ে যেতে চান?',
+      ()=>{
+        records = data.records;
+        listedPatients = data.listedPatients;
+        motherProfiles = data.motherProfiles;
+        reRenderEverything();
+        document.getElementById('settings-modal').classList.add('hidden');
+        toast('ডেটা সফলভাবে ইম্পোর্ট করা হয়েছে');
+      }
+    );
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById('btn-delete-all').addEventListener('click', ()=>{
+  askConfirm(
+    'সম্পূর্ণ ডেটা মুছে ফেলুন?',
+    'সব রোগী, সব রিডিং এবং সব মা-প্রোফাইল স্থায়ীভাবে মুছে যাবে। এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।',
+    ()=>{
+      records = [];
+      listedPatients = [];
+      motherProfiles = [];
+      reRenderEverything();
+      document.getElementById('settings-modal').classList.add('hidden');
+      toast('সব ডেটা মুছে ফেলা হয়েছে');
+    }
+  );
+});
+
+/* ================= অফলাইন সাপোর্ট (Service Worker) ================= */
+if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./heartbeat-service-worker.js').catch(()=>{
+      // সাইলেন্টলি ব্যর্থ হলে অ্যাপ স্বাভাবিকভাবেই অনলাইনে কাজ করবে
+    });
+  });
+}
+
+/* ================= শুরু ================= */
+renderGeneralRecent();
+switchView('general');
+</script>
+</body>
+</html>
